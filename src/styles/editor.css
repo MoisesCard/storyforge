@@ -1,0 +1,17 @@
+.editor-bold {
+  font-weight: bold !important;
+}
+
+.editor-italic {
+  font-style: italic !important;
+}
+
+.editor-list {
+  margin-left: 20px !important;
+}
+
+/* Add a bullet point before list items */
+.editor-list::before {
+  content: "•";
+  margin-right: 8px;
+} 
