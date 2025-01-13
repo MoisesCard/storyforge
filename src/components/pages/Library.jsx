@@ -1,0 +1,1 @@
+import { FiTrash2 } from 'react-icons/fi';

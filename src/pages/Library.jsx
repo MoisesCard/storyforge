@@ -20,7 +20,7 @@ import {
   Button,
   HStack,
 } from '@chakra-ui/react';
-import { FiTrash2, FiEdit } from 'react-icons/fi';
+import { FiTrash2 } from 'react-icons/fi';
 import useProjectStore from '../stores/projectStore';
 
 function Library() {

@@ -1,0 +1,32 @@
+.editor-container {
+  height: 100%;
+  background-color: var(--chakra-colors-brand-dark-100);
+}
+
+.editor-page {
+  width: 8.5in;
+  min-height: 11in;
+  background: white;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  margin: 0 auto;
+  padding: 1in;
+}
+
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--chakra-colors-brand-dark-100);
+  border-bottom: 1px solid var(--chakra-colors-brand-dark-300);
+}
+
+[data-slate-editor="true"] {
+  padding: 0;
+  min-height: 100%;
+  outline: none;
+}
+
+[data-slate-placeholder="true"] {
+  color: #4A5568 !important;
+  opacity: 0.6;
+}

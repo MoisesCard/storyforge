@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
-import Editor from './components/Editor';
 import Characters from './pages/Characters';
 import WorldBuilder from './pages/WorldBuilder';
 import Library from './pages/Library';
+import EditorPage from './pages/EditorPage';
 
 console.log('Environment check:', {
   hasApiKey: !!process.env.REACT_APP_FIREBASE_API_KEY,
@@ -18,7 +18,7 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/editor/:projectId" element={<Editor />} />
+          <Route path="/editor/:projectId" element={<EditorPage />} />
           <Route path="/characters" element={<Characters />} />
           <Route path="/world-builder" element={<WorldBuilder />} />
           <Route path="/library" element={<Library />} />
