@@ -19,7 +19,9 @@ const useDocumentStore = create((set, get) => ({
   fetchDocument: async (documentId) => {
     set({ isLoading: true, error: null });
     try {
-      const docRef = doc(db, COLLECTION_NAME, documentId);
+      if (!documentId) throw new Error('Document ID is required');
+      
+      const docRef = doc(db, 'projects', documentId);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
@@ -38,12 +40,11 @@ const useDocumentStore = create((set, get) => ({
               children: [{ text: '' }],
             },
           ],
-          title: 'Untitled',
+          title: 'Untitled Document',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
         
-        // Create the document in Firestore
         await setDoc(docRef, defaultDoc);
         
         const newDoc = {
@@ -58,7 +59,10 @@ const useDocumentStore = create((set, get) => ({
       }
     } catch (error) {
       console.error('Error fetching/creating document:', error);
-      set({ error: error.message });
+      // Check if it's a connection error
+      if (error.code === 'unavailable' || error.message.includes('offline')) {
+        throw new Error('Unable to connect to the server. Please check your internet connection.');
+      }
       throw error;
     } finally {
       set({ isLoading: false });

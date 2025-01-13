@@ -20,7 +20,16 @@
     "slate-history": "^0.100.0",
     "slate-react": "^0.101.5",
     "web-vitals": "^2.1.4",
-    "zustand": "^4.4.7"
+    "zustand": "^4.4.7",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+  },
+  "babel": {
+    "presets": [
+      "react-app"
+    ]
   },
   "scripts": {
     "start": "react-scripts start",

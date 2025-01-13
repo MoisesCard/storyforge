@@ -47,7 +47,7 @@ const withFormatting = editor => {
   return editor;
 };
 
-const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, onSave, isSaving }) => {
+const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus, title }) => {
   const editor = useMemo(() => {
     const e = withFormatting(withHistory(withReact(createEditor())));
     
@@ -167,14 +167,14 @@ const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, onSave, isSaving }
 
   return (
     <Flex direction="column" h="100%" bg="brand.dark.100">
-      <EditorMenuBar onSave={onSave} isSaving={isSaving} />
+      <EditorMenuBar title={title} />
       <Slate 
         editor={editor} 
         initialValue={value}
         value={value}
         onChange={onChange}
       >
-        <EditorToolbar />
+        <EditorToolbar saveStatus={saveStatus} />
         <Box 
           flex="1"
           bg="brand.dark.100"

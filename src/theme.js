@@ -30,8 +30,8 @@ const theme = extendTheme({
         400: '#382D4D',      
       },
       text: {
-        primary: '#FFFFFF',
-        secondary: '#A39CB5',
+        primary: '#E2E8F0',
+        secondary: '#A0AEC0',
       },
     },
   },

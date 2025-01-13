@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Center, Spinner, useToast } from '@chakra-ui/react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Box, Center, Spinner, Text, VStack } from '@chakra-ui/react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '../components/editor/Editor';
 import useDocumentStore from '../stores/documentStore';
+import { debounce } from 'lodash';
 
 // Initial value for the editor
 const DEFAULT_VALUE = [
@@ -14,99 +15,71 @@ const DEFAULT_VALUE = [
 
 function EditorPage() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [value, setValue] = useState(DEFAULT_VALUE);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const toast = useToast();
-
-  // Get document store functions
+  const [saveStatus, setSaveStatus] = useState('saved');
+  const [title, setTitle] = useState('Untitled Document');
+  const [error, setError] = useState(null);
   const { fetchDocument, updateDocument } = useDocumentStore();
+
+  // Create a ref for the debounced save function
+  const debouncedSaveRef = useRef();
+
+  // Initialize the debounced save function
+  useEffect(() => {
+    debouncedSaveRef.current = debounce(async (content) => {
+      try {
+        await updateDocument(projectId, { content });
+        setSaveStatus('saved');
+      } catch (error) {
+        console.error('Error saving document:', error);
+        setSaveStatus('error');
+        setError(error.message);
+      }
+    }, 1000);
+
+    return () => {
+      debouncedSaveRef.current?.cancel();
+    };
+  }, [projectId, updateDocument]);
 
   // Load document content
   useEffect(() => {
     const loadDocument = async () => {
       try {
-        setIsLoading(true);
-        if (projectId) {
-          const doc = await fetchDocument(projectId);
-          if (doc?.content) {
-            setValue(doc.content);
-          } else {
-            setValue(DEFAULT_VALUE);
-          }
-        }
+        const doc = await fetchDocument(projectId);
+        setValue(doc.content || DEFAULT_VALUE);
+        setTitle(doc.title || 'Untitled Document');
+        setError(null);
       } catch (error) {
         console.error('Error loading document:', error);
-        toast({
-          title: "Error loading document",
-          description: error.message,
-          status: "error",
-          duration: 5000,
-        });
-        setValue(DEFAULT_VALUE);
+        setError(error.message);
+        // Optionally navigate back to library on fatal errors
+        // if (error.code === 'permission-denied') navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
-
     loadDocument();
-  }, [projectId, fetchDocument, toast]);
+  }, [projectId, fetchDocument, navigate]);
 
   const handleChange = useCallback((newValue) => {
-    if (Array.isArray(newValue) && newValue.length > 0) {
-      setValue(newValue);
-    }
+    setValue(newValue);
+    setSaveStatus('saving');
+    debouncedSaveRef.current?.(newValue);
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!projectId) return;
-
-    setIsSaving(true);
-    try {
-      await updateDocument(projectId, {
-        content: value,
-      });
-      
-      toast({
-        title: "Document saved",
-        status: "success",
-        duration: 2000,
-      });
-    } catch (error) {
-      toast({
-        title: "Error saving document",
-        description: error.message,
-        status: "error",
-        duration: 3000,
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [projectId, value, updateDocument, toast]);
-
-  // Auto-save effect
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (projectId && value !== DEFAULT_VALUE) {
-        handleSave();
-      }
-    }, 2000);
-
-    return () => clearTimeout(timeoutId);
-  }, [value, projectId, handleSave]);
-
-  // Keyboard shortcut
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave]);
+  if (error) {
+    return (
+      <Center h="100vh">
+        <VStack spacing={4}>
+          <Text color="red.500">Error: {error}</Text>
+          <Text>Please try refreshing the page</Text>
+        </VStack>
+      </Center>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -122,8 +95,8 @@ function EditorPage() {
         value={value}
         onChange={handleChange}
         projectId={projectId}
-        onSave={handleSave}
-        isSaving={isSaving}
+        saveStatus={saveStatus}
+        title={title}
       />
     </Box>
   );

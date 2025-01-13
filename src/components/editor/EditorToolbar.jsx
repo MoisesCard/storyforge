@@ -6,17 +6,21 @@ import {
   NumberInput,
   NumberInputField,
   Divider,
-  Tooltip
+  Tooltip,
+  Text,
+  Icon,
+  Flex,
+  Spacer
 } from '@chakra-ui/react';
 import { 
   FiBold, FiItalic, FiUnderline, 
   FiAlignLeft, FiAlignCenter, FiAlignRight, FiAlignJustify,
-  FiList, FiLink
+  FiList, FiLink, FiCheck
 } from 'react-icons/fi';
 import { useSlate } from 'slate-react';
 import { CustomEditor } from './EditorUtils';
 
-const EditorToolbar = () => {
+const EditorToolbar = ({ saveStatus }) => {
   const editor = useSlate();
   const format = CustomEditor.getCurrentFormat(editor);
 
@@ -32,8 +36,6 @@ const EditorToolbar = () => {
     CustomEditor.toggleFontSize(editor, `${value}pt`);
   };
 
-  console.log('Toolbar render - current format:', format);
-
   return (
     <HStack 
       spacing={2} 
@@ -42,6 +44,7 @@ const EditorToolbar = () => {
       borderColor="brand.dark.300"
       bg="brand.dark.100"
       color="brand.text.primary"
+      px={4}
     >
       {/* Font Family */}
       <Select 
@@ -169,6 +172,21 @@ const EditorToolbar = () => {
           aria-label="Insert link"
         />
       </Tooltip>
+
+      <Spacer />
+
+      {/* Save Status */}
+      <Flex align="center" color="brand.text.secondary" minW="80px" justify="flex-end" mr={4}>
+        {saveStatus === 'saving' && (
+          <Text fontSize="sm">Saving...</Text>
+        )}
+        {saveStatus === 'saved' && (
+          <Flex align="center" gap={1}>
+            <Text fontSize="sm">Saved</Text>
+            <Icon as={FiCheck} color="green.400" />
+          </Flex>
+        )}
+      </Flex>
     </HStack>
   );
 };
