@@ -23,5 +23,4 @@ yarn-error.log*
 
 # IDE
 .idea/
-.vscode/ 
-node_modules
+.vscode/

@@ -13,6 +13,7 @@ import {
   FiBook, 
   FiUsers, 
   FiMap,
+  FiUser,
 } from 'react-icons/fi';
 
 const SidebarItem = ({ icon, label, to }) => (
@@ -78,6 +79,11 @@ function Sidebar() {
           icon={FiMap} 
           label="World" 
           to="/world-builder" 
+        />
+        <SidebarItem 
+          icon={FiUser} 
+          label="Profile" 
+          to="/profile" 
         />
       </VStack>
     </Box>

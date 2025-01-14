@@ -7,6 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import PrivateRoute from './components/auth/PrivateRoute';
+import Profile from './pages/Profile';
 
 // Lazy load the components
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -53,6 +54,11 @@ function App() {
                 <Route path="/world-builder" element={
                   <PrivateRoute>
                     <WorldBuilder />
+                  </PrivateRoute>
+                } />
+                <Route path="/profile" element={
+                  <PrivateRoute>
+                    <Profile />
                   </PrivateRoute>
                 } />
               </Routes>

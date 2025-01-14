@@ -8,36 +8,48 @@ import {
   Button,
   Heading,
   Text,
-  useToast,
   Link,
+  FormErrorMessage,
 } from '@chakra-ui/react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { keyframes } from '@emotion/react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AuthTitle from '../components/auth/AuthTitle';
+
+// Define shake animation
+const shakeAnimation = keyframes`
+  0% { transform: translateX(0); }
+  25% { transform: translateX(10px); }
+  50% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+  100% { transform: translateX(0); }
+`;
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [shake, setShake] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
     try {
       await login(email, password);
       navigate('/');
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+      setError(
+        error.code === 'auth/invalid-credential' 
+          ? 'Invalid email or password'
+          : 'An error occurred while signing in'
+      );
+      setShake(true);
+      setTimeout(() => setShake(false), 500); // Reset shake after animation
     } finally {
       setLoading(false);
     }
@@ -56,25 +68,42 @@ function Login() {
         </Heading>
         <form onSubmit={handleSubmit}>
           <VStack spacing={4}>
-            <FormControl isRequired>
+            <FormControl isInvalid={error}>
               <FormLabel color="brand.text.secondary">Email</FormLabel>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 bg="brand.dark.200"
-                borderColor="brand.dark.300"
+                borderColor={error ? "red.500" : "brand.dark.300"}
+                _hover={{
+                  borderColor: error ? "red.500" : "brand.primary",
+                }}
+                animation={shake ? `${shakeAnimation} 0.5s ease` : 'none'}
               />
             </FormControl>
-            <FormControl isRequired>
+            <FormControl isInvalid={error}>
               <FormLabel color="brand.text.secondary">Password</FormLabel>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 bg="brand.dark.200"
-                borderColor="brand.dark.300"
+                borderColor={error ? "red.500" : "brand.dark.300"}
+                _hover={{
+                  borderColor: error ? "red.500" : "brand.primary",
+                }}
+                animation={shake ? `${shakeAnimation} 0.5s ease` : 'none'}
               />
+              {error && (
+                <FormErrorMessage
+                  color="red.500"
+                  fontSize="sm"
+                  mt={2}
+                >
+                  {error}
+                </FormErrorMessage>
+              )}
             </FormControl>
             <Button
               type="submit"
@@ -82,6 +111,14 @@ function Login() {
               bg="linear-gradient(135deg, brand.primary, brand.secondary)"
               color="white"
               w="full"
+              _hover={{
+                transform: 'translateY(-2px)',
+                shadow: 'lg',
+              }}
+              _active={{
+                transform: 'translateY(0)',
+              }}
+              transition="all 0.2s"
             >
               Sign In
             </Button>

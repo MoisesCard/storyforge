@@ -1,18 +1,20 @@
 import React from 'react';
 import {
-  Container,
-  SimpleGrid,
   Box,
+  Container,
   Heading,
+  SimpleGrid,
+  VStack,
+  HStack,
+  Button,
   Text,
   Icon,
-  VStack,
   Link,
   useDisclosure,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { FiUsers, FiMap, FiBook, FiPlus } from 'react-icons/fi';
-import NewProjectModal from '../components/modals/NewProjectModal.jsx';
+import { FiPlus, FiUsers, FiMap, FiBook } from 'react-icons/fi';
+import NewProjectModal from '../components/modals/NewProjectModal';
 
 const DashboardCard = ({ title, description, icon, to, onClick }) => {
   const CardContent = (
@@ -77,13 +79,31 @@ function Dashboard() {
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
-        <Heading
-          size="xl"
-          bgGradient="linear(to-r, brand.primary, brand.secondary)"
-          bgClip="text"
-        >
-          Dashboard
-        </Heading>
+        <HStack justify="space-between" align="center">
+          <Heading
+            size="xl"
+            bgGradient="linear(to-r, brand.primary, brand.secondary)"
+            bgClip="text"
+          >
+            Dashboard
+          </Heading>
+          <Button
+            leftIcon={<FiPlus />}
+            onClick={onOpen}
+            bg="linear-gradient(135deg, brand.primary, brand.secondary)"
+            color="white"
+            _hover={{
+              transform: 'translateY(-2px)',
+              shadow: 'lg',
+            }}
+            _active={{
+              transform: 'translateY(0)',
+            }}
+            transition="all 0.2s"
+          >
+            New Project
+          </Button>
+        </HStack>
 
         <SimpleGrid columns={[1, 2, 3]} spacing={6}>
           <DashboardCard
