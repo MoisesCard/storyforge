@@ -10,6 +10,7 @@ import {
   Text,
   Icon,
   Flex,
+  Spacer,
 } from '@chakra-ui/react';
 import { 
   FiBold, FiItalic, FiUnderline, 
@@ -20,7 +21,7 @@ import { GoQuote } from 'react-icons/go';
 import { useSlate } from 'slate-react';
 import { CustomEditor } from './EditorUtils';
 
-const EditorToolbar = ({ saveStatus }) => {
+const EditorToolbar = ({ saveStatus, wordCount, charCount }) => {
   const editor = useSlate();
   const format = CustomEditor.getCurrentFormat(editor);
 
@@ -37,14 +38,12 @@ const EditorToolbar = ({ saveStatus }) => {
   };
 
   return (
-    <HStack 
-      spacing={2} 
-      p={1} 
-      borderBottom="1px" 
+    <Flex 
+      bg="brand.dark.100" 
+      p={2} 
+      borderBottom="1px solid" 
       borderColor="brand.dark.300"
-      bg="brand.dark.100"
-      color="brand.text.primary"
-      px={4}
+      align="center"
     >
       {/* Save Status - Moved to the left */}
       <Flex align="center" color="brand.text.secondary" minW="80px">
@@ -236,7 +235,18 @@ const EditorToolbar = ({ saveStatus }) => {
           aria-label="Insert link"
         />
       </Tooltip>
-    </HStack>
+
+      <Spacer />
+      
+      <HStack spacing={4} ml={4} mr={4}>
+        <Text color="brand.text.secondary" fontSize="sm">
+          Words: {wordCount}
+        </Text>
+        <Text color="brand.text.secondary" fontSize="sm">
+          Characters: {charCount}
+        </Text>
+      </HStack>
+    </Flex>
   );
 };
 

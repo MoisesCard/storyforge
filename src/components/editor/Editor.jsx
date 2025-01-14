@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { createEditor, Editor as SlateEditor, Transforms, Element } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
@@ -244,6 +244,36 @@ const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus, title 
     }
   }, [editor]);
 
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
+
+  // Update counts when content changes
+  useEffect(() => {
+    // Get text content from all nodes
+    const text = value
+      .map(node => {
+        // Recursively get text from node and its children
+        const getNodeText = n => {
+          if (typeof n.text === 'string') {
+            return n.text;
+          }
+          if (Array.isArray(n.children)) {
+            return n.children.map(getNodeText).join('');
+          }
+          return '';
+        };
+        return getNodeText(node);
+      })
+      .join('\n');
+
+    // Calculate counts
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const chars = text.length;
+    
+    setWordCount(words);
+    setCharCount(chars);
+  }, [value]);
+
   return (
     <Flex direction="column" h="100%" bg="brand.dark.100">
       <EditorMenuBar title={title} />
@@ -253,7 +283,11 @@ const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus, title 
         value={value}
         onChange={onChange}
       >
-        <EditorToolbar saveStatus={saveStatus} />
+        <EditorToolbar 
+          saveStatus={saveStatus} 
+          wordCount={wordCount}
+          charCount={charCount}
+        />
         <Box 
           flex="1"
           bg="brand.dark.100"
