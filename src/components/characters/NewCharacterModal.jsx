@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -6,42 +7,31 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  VStack,
   FormControl,
   FormLabel,
   Input,
-  Select,
   Textarea,
+  VStack,
+  Select,
 } from '@chakra-ui/react';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@chakra-ui/react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { auth } from '../../firebase';
-import { db } from '../../firebase';
 
-const GENRES = [
-  'Fantasy',
-  'Science Fiction',
-  'Mystery',
-  'Romance',
-  'Thriller',
-  'Horror',
-  'Literary Fiction',
-  'Historical Fiction',
-  'Young Adult',
+const ROLES = [
+  'Protagonist',
+  'Antagonist',
+  'Supporting Character',
+  'Mentor',
+  'Love Interest',
+  'Sidekick',
   'Other'
 ];
 
-function NewProjectModal({ isOpen, onClose }) {
-  const navigate = useNavigate();
-  const toast = useToast();
+function NewCharacterModal({ isOpen, onClose, onCreateCharacter }) {
   const [formData, setFormData] = useState({
-    title: '',
-    genre: '',
+    name: '',
+    role: '',
+    age: '',
+    occupation: '',
     description: '',
-    targetAudience: '',
-    estimatedLength: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,85 +44,39 @@ function NewProjectModal({ isOpen, onClose }) {
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.genre) {
-      toast({
-        title: "Required fields missing",
-        description: "Please fill in the title and genre",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
     if (isSubmitting) return;
     
     setIsSubmitting(true);
     try {
-      const projectRef = await addDoc(collection(db, 'projects'), {
-        ...formData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        userId: auth.currentUser?.uid,
-      });
-      
-      onClose();
+      await onCreateCharacter(formData);
       setFormData({
-        title: '',
-        genre: '',
+        name: '',
+        role: '',
+        age: '',
+        occupation: '',
         description: '',
-        targetAudience: '',
-        theme: '',
-        setting: '',
-        plotSummary: '',
-        notes: '',
       });
-      
-      // Navigate to editor with the new project ID
-      navigate(`/editor/${projectRef.id}`);
-      
     } catch (error) {
-      console.error('Error creating project:', error);
-      toast({
-        title: "Error creating project",
-        description: error.message,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+      console.error('Error creating character:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData({
-        title: '',
-        genre: '',
-        description: '',
-        targetAudience: '',
-        estimatedLength: '',
-      });
-      setIsSubmitting(false);
-    }
-  }, [isOpen]);
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={!isSubmitting}>
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay backdropFilter="blur(4px)" />
       <ModalContent bg="brand.dark.100">
-        <ModalHeader color="brand.text.primary">Create New Project</ModalHeader>
+        <ModalHeader color="brand.text.primary">Create New Character</ModalHeader>
         <ModalBody>
           <VStack spacing={4}>
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Title</FormLabel>
+            <FormControl isRequired>
+              <FormLabel color="brand.text.secondary">Name</FormLabel>
               <Input
-                name="title"
-                value={formData.title}
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
-                placeholder="Enter project title"
+                placeholder="Character name"
                 variant="filled"
                 bg="brand.dark.200"
                 borderColor="brand.dark.300"
@@ -144,13 +88,13 @@ function NewProjectModal({ isOpen, onClose }) {
               />
             </FormControl>
 
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Genre</FormLabel>
+            <FormControl isRequired>
+              <FormLabel color="brand.text.secondary">Role</FormLabel>
               <Select
-                name="genre"
-                value={formData.genre}
+                name="role"
+                value={formData.role}
                 onChange={handleChange}
-                placeholder="Select genre"
+                placeholder="Select role"
                 variant="filled"
                 bg="brand.dark.200"
                 borderColor="brand.dark.300"
@@ -160,10 +104,46 @@ function NewProjectModal({ isOpen, onClose }) {
                   borderColor: 'brand.primary'
                 }}
               >
-                {GENRES.map(genre => (
-                  <option key={genre} value={genre}>{genre}</option>
+                {ROLES.map(role => (
+                  <option key={role} value={role}>{role}</option>
                 ))}
               </Select>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel color="brand.text.secondary">Age</FormLabel>
+              <Input
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
+                placeholder="Character age"
+                variant="filled"
+                bg="brand.dark.200"
+                borderColor="brand.dark.300"
+                _hover={{ bg: 'brand.dark.300' }}
+                _focus={{ 
+                  bg: 'brand.dark.300',
+                  borderColor: 'brand.primary'
+                }}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel color="brand.text.secondary">Occupation</FormLabel>
+              <Input
+                name="occupation"
+                value={formData.occupation}
+                onChange={handleChange}
+                placeholder="Character occupation"
+                variant="filled"
+                bg="brand.dark.200"
+                borderColor="brand.dark.300"
+                _hover={{ bg: 'brand.dark.300' }}
+                _focus={{ 
+                  bg: 'brand.dark.300',
+                  borderColor: 'brand.primary'
+                }}
+              />
             </FormControl>
 
             <FormControl>
@@ -172,7 +152,7 @@ function NewProjectModal({ isOpen, onClose }) {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Brief description of your project"
+                placeholder="Character description"
                 variant="filled"
                 bg="brand.dark.200"
                 borderColor="brand.dark.300"
@@ -181,42 +161,7 @@ function NewProjectModal({ isOpen, onClose }) {
                   bg: 'brand.dark.300',
                   borderColor: 'brand.primary'
                 }}
-              />
-            </FormControl>
-
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Target Audience</FormLabel>
-              <Input
-                name="targetAudience"
-                value={formData.targetAudience}
-                onChange={handleChange}
-                placeholder="e.g., Young Adult, Adult, Children"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
-              />
-            </FormControl>
-
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Estimated Length</FormLabel>
-              <Input
-                name="estimatedLength"
-                value={formData.estimatedLength}
-                onChange={handleChange}
-                placeholder="e.g., Novel (80k words), Short Story (5k words)"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
+                rows={4}
               />
             </FormControl>
           </VStack>
@@ -243,7 +188,7 @@ function NewProjectModal({ isOpen, onClose }) {
             }}
             transition="all 0.2s"
           >
-            Create Project
+            Create Character
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -251,4 +196,4 @@ function NewProjectModal({ isOpen, onClose }) {
   );
 }
 
-export default NewProjectModal; 
+export default NewCharacterModal; 

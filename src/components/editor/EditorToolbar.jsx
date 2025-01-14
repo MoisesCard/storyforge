@@ -10,13 +10,13 @@ import {
   Text,
   Icon,
   Flex,
-  Spacer
 } from '@chakra-ui/react';
 import { 
   FiBold, FiItalic, FiUnderline, 
   FiAlignLeft, FiAlignCenter, FiAlignRight, FiAlignJustify,
-  FiList, FiLink, FiCheck
+  FiList, FiLink, FiCheck,
 } from 'react-icons/fi';
+import { GoQuote } from 'react-icons/go';
 import { useSlate } from 'slate-react';
 import { CustomEditor } from './EditorUtils';
 
@@ -46,6 +46,21 @@ const EditorToolbar = ({ saveStatus }) => {
       color="brand.text.primary"
       px={4}
     >
+      {/* Save Status - Moved to the left */}
+      <Flex align="center" color="brand.text.secondary" minW="80px">
+        {saveStatus === 'saving' && (
+          <Text fontSize="sm">Saving...</Text>
+        )}
+        {saveStatus === 'saved' && (
+          <Flex align="center" gap={1}>
+            <Text fontSize="sm">Saved</Text>
+            <Icon as={FiCheck} color="green.400" />
+          </Flex>
+        )}
+      </Flex>
+
+      <Divider orientation="vertical" h="24px" />
+
       {/* Font Family */}
       <Select 
         size="sm" 
@@ -102,6 +117,43 @@ const EditorToolbar = ({ saveStatus }) => {
           aria-label="Underline"
           isActive={CustomEditor.isMarkActive(editor, 'underline')}
           onClick={() => CustomEditor.toggleMark(editor, 'underline')}
+        />
+      </Tooltip>
+
+      {/* Header buttons */}
+      <Tooltip label="Heading 1">
+        <IconButton 
+          icon={
+            <Text fontWeight="bold" fontSize="sm">H1</Text>
+          }
+          variant="ghost" 
+          size="sm" 
+          aria-label="Heading 1"
+          isActive={CustomEditor.isHeadingActive(editor, 1)}
+          onClick={() => CustomEditor.toggleHeading(editor, 1)}
+          color={CustomEditor.isHeadingActive(editor, 1) ? "white" : "inherit"}
+          bg={CustomEditor.isHeadingActive(editor, 1) ? "brand.primary" : "transparent"}
+          _hover={{
+            bg: CustomEditor.isHeadingActive(editor, 1) ? "brand.primary" : "brand.dark.300",
+          }}
+        />
+      </Tooltip>
+
+      <Tooltip label="Heading 2">
+        <IconButton 
+          icon={
+            <Text fontWeight="bold" fontSize="sm">H2</Text>
+          }
+          variant="ghost" 
+          size="sm" 
+          aria-label="Heading 2"
+          isActive={CustomEditor.isHeadingActive(editor, 2)}
+          onClick={() => CustomEditor.toggleHeading(editor, 2)}
+          color={CustomEditor.isHeadingActive(editor, 2) ? "white" : "inherit"}
+          bg={CustomEditor.isHeadingActive(editor, 2) ? "brand.primary" : "transparent"}
+          _hover={{
+            bg: CustomEditor.isHeadingActive(editor, 2) ? "brand.primary" : "brand.dark.300",
+          }}
         />
       </Tooltip>
 
@@ -163,6 +215,18 @@ const EditorToolbar = ({ saveStatus }) => {
         />
       </Tooltip>
 
+      {/* Add Block Quote */}
+      <Tooltip label="Block quote">
+        <IconButton 
+          icon={<GoQuote />} 
+          variant="ghost" 
+          size="sm" 
+          aria-label="Block quote"
+          isActive={CustomEditor.isBlockQuoteActive(editor)}
+          onClick={() => CustomEditor.toggleBlockQuote(editor)}
+        />
+      </Tooltip>
+
       {/* Link */}
       <Tooltip label="Insert link">
         <IconButton 
@@ -172,21 +236,6 @@ const EditorToolbar = ({ saveStatus }) => {
           aria-label="Insert link"
         />
       </Tooltip>
-
-      <Spacer />
-
-      {/* Save Status */}
-      <Flex align="center" color="brand.text.secondary" minW="80px" justify="flex-end" mr={4}>
-        {saveStatus === 'saving' && (
-          <Text fontSize="sm">Saving...</Text>
-        )}
-        {saveStatus === 'saved' && (
-          <Flex align="center" gap={1}>
-            <Text fontSize="sm">Saved</Text>
-            <Icon as={FiCheck} color="green.400" />
-          </Flex>
-        )}
-      </Flex>
     </HStack>
   );
 };

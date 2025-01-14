@@ -1,87 +1,77 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import {
+  Box,
   Container,
-  VStack,
+  Grid,
   Heading,
   Text,
-  Box,
-  SimpleGrid,
-  Badge,
-  useToast,
-  IconButton,
-  useDisclosure,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  Button,
-  HStack,
+  VStack,
+  Spinner,
 } from '@chakra-ui/react';
-import { FiTrash2 } from 'react-icons/fi';
-import useProjectStore from '../stores/projectStore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
+import ProjectCard from '../components/projects/ProjectCard';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 function Library() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
-  const toast = useToast();
-  const { projects, fetchProjects, deleteProject, isLoading } = useProjectStore();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [projectToDelete, setProjectToDelete] = React.useState(null);
-  const cancelRef = React.useRef();
 
   useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        await fetchProjects();
-      } catch (error) {
-        console.error('Error loading projects:', error);
-        toast({
-          title: 'Error loading projects',
-          description: error.message,
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };
-
-    loadProjects();
-  }, [fetchProjects, toast]);
-
-  const handleProjectClick = (projectId) => {
-    navigate(`/editor/${projectId}`);
-  };
-
-  const handleDeleteClick = (e, project) => {
-    e.stopPropagation(); // Prevent navigation to editor
-    setProjectToDelete(project);
-    onOpen();
-  };
-
-  const handleDeleteConfirm = async () => {
-    try {
-      await deleteProject(projectToDelete.id);
-      toast({
-        title: 'Project deleted',
-        description: `"${projectToDelete.title}" has been deleted`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      onClose();
-      setProjectToDelete(null);
-    } catch (error) {
-      toast({
-        title: 'Error deleting project',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+    if (!currentUser) {
+      navigate('/login');
+      return;
     }
-  };
+
+    const q = query(
+      collection(db, 'projects'),
+      where('userId', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const projectsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        updatedAt: doc.data().updatedAt?.toDate(),
+        createdAt: doc.data().createdAt?.toDate(),
+      }));
+
+      projectsData.sort((a, b) => b.updatedAt - a.updatedAt);
+      setProjects(projectsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching projects:', error);
+      setError(error.message);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, navigate]);
+
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <VStack spacing={8} align="center" justify="center" minH="50vh">
+          <Spinner size="xl" color="brand.primary" />
+          <Text color="brand.text.secondary">Loading your projects...</Text>
+        </VStack>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <VStack spacing={8} align="center" justify="center" minH="50vh">
+          <Text color="red.500">Error: {error}</Text>
+        </VStack>
+      </Container>
+    );
+  }
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -91,109 +81,30 @@ function Library() {
           bgGradient="linear(to-r, brand.primary, brand.secondary)"
           bgClip="text"
         >
-          Your Projects
+          Library
         </Heading>
 
-        {isLoading ? (
-          <Text>Loading projects...</Text>
-        ) : projects.length === 0 ? (
-          <Text color="brand.text.secondary">No projects yet. Create one to get started!</Text>
+        {projects.length === 0 ? (
+          <Box
+            p={8}
+            textAlign="center"
+            bg="brand.dark.100"
+            borderRadius="lg"
+            borderColor="brand.dark.300"
+            borderWidth="1px"
+          >
+            <Text color="brand.text.secondary">
+              No projects yet. Create one to get started!
+            </Text>
+          </Box>
         ) : (
-          <SimpleGrid columns={[1, 2, 3]} spacing={6}>
-            {projects.map((project) => (
-              <Box
-                key={project.id}
-                onClick={() => handleProjectClick(project.id)}
-                bg="brand.dark.100"
-                p={6}
-                borderRadius="xl"
-                cursor="pointer"
-                position="relative"
-                overflow="hidden"
-                _before={{
-                  content: '""',
-                  position: 'absolute',
-                  top: '-2px',
-                  left: '-2px',
-                  right: '-2px',
-                  bottom: '-2px',
-                  bg: 'linear-gradient(45deg, brand.primary, brand.secondary)',
-                  zIndex: 0,
-                  borderRadius: 'xl',
-                  opacity: 0,
-                  transition: 'opacity 0.3s',
-                }}
-                _hover={{
-                  transform: 'translateY(-4px)',
-                  '&::before': { opacity: 0.3 },
-                }}
-                transition="all 0.3s"
-              >
-                <VStack align="start" spacing={4} position="relative" zIndex={1}>
-                  <HStack w="full" justify="space-between">
-                    <Heading size="md" color="white">
-                      {project.title}
-                    </Heading>
-                    <IconButton
-                      icon={<FiTrash2 />}
-                      variant="ghost"
-                      colorScheme="red"
-                      size="sm"
-                      onClick={(e) => handleDeleteClick(e, project)}
-                      _hover={{
-                        bg: 'rgba(255, 0, 0, 0.2)',
-                      }}
-                    />
-                  </HStack>
-                  <Badge colorScheme="blue">{project.genre}</Badge>
-                  <Text color="brand.text.secondary" noOfLines={2}>
-                    {project.description}
-                  </Text>
-                  <Text color="brand.text.secondary" fontSize="sm">
-                    Target: {project.targetAudience}
-                  </Text>
-                  <Text color="brand.text.secondary" fontSize="sm">
-                    Length: {project.estimatedLength}
-                  </Text>
-                  {project.updatedAt && (
-                    <Text color="brand.text.secondary" fontSize="xs">
-                      Last edited: {new Date(project.updatedAt).toLocaleDateString()}
-                    </Text>
-                  )}
-                </VStack>
-              </Box>
+          <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
+            {projects.map(project => (
+              <ProjectCard key={project.id} project={project} />
             ))}
-          </SimpleGrid>
+          </Grid>
         )}
       </VStack>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        isOpen={isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={onClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent bg="brand.dark.100">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Project
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              Are you sure you want to delete "{projectToDelete?.title}"? This action cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onClose} variant="ghost">
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteConfirm} ml={3}>
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
     </Container>
   );
 }

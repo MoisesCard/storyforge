@@ -86,6 +86,82 @@ export const CustomEditor = {
       fontFamily: marks.fontFamily || 'Arial',
       fontSize: marks.fontSize || '11pt',
       isList: block.type === 'bullet-list',
+      isH1: block.type === 'heading-1',
+      isH2: block.type === 'heading-2',
     };
-  }
+  },
+
+  // Numbered List handling
+  isNumberedListActive(editor) {
+    const [match] = Editor.nodes(editor, {
+      match: n => Element.isElement(n) && n.type === 'numbered-list',
+    }) || [];
+    return !!match;
+  },
+
+  toggleNumberedList(editor) {
+    const isList = CustomEditor.isNumberedListActive(editor);
+    
+    Transforms.setNodes(
+      editor,
+      { 
+        type: isList ? 'paragraph' : 'numbered-list' 
+      },
+      { 
+        match: n => Element.isElement(n) && !editor.isInline(n)
+      }
+    );
+  },
+
+  // Block Quote handling
+  isBlockQuoteActive(editor) {
+    const [match] = Editor.nodes(editor, {
+      match: n => Element.isElement(n) && n.type === 'block-quote',
+    }) || [];
+    return !!match;
+  },
+
+  toggleBlockQuote(editor) {
+    const isQuote = CustomEditor.isBlockQuoteActive(editor);
+    
+    Transforms.setNodes(
+      editor,
+      { 
+        type: isQuote ? 'paragraph' : 'block-quote' 
+      },
+      { 
+        match: n => Element.isElement(n) && !editor.isInline(n)
+      }
+    );
+  },
+
+  // Heading handling
+  isHeadingActive(editor, level) {
+    const [match] = Editor.nodes(editor, {
+      match: n => Element.isElement(n) && n.type === `heading-${level}`,
+    }) || [];
+    return !!match;
+  },
+
+  toggleHeading(editor, level) {
+    const isActive = CustomEditor.isHeadingActive(editor, level);
+
+    // First handle the node type change
+    Transforms.setNodes(
+      editor,
+      { type: isActive ? 'paragraph' : `heading-${level}` },
+      { match: n => Element.isElement(n) && !editor.isInline(n) }
+    );
+
+    // Then handle the text formatting
+    if (!isActive) {
+      // When activating heading, add bold and size marks
+      Editor.addMark(editor, 'bold', true);
+      Editor.addMark(editor, 'fontSize', level === 1 ? '32px' : '24px');
+    } else {
+      // When deactivating heading, remove marks
+      Editor.removeMark(editor, 'bold');
+      Editor.removeMark(editor, 'fontSize');
+    }
+  },
 }; 

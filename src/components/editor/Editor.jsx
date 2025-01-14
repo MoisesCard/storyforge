@@ -19,23 +19,27 @@ const DEFAULT_VALUE = [
 ];
 
 const withFormatting = editor => {
-  const { normalizeNode, isInline } = editor;
-
-  editor.isInline = element => {
-    return element.type === 'link' ? true : isInline(element);
-  };
+  const { normalizeNode } = editor;
 
   editor.normalizeNode = entry => {
     const [node, path] = entry;
 
     // Ensure blocks have required properties
     if (Element.isElement(node) && !editor.isInline(node)) {
-      if (typeof node.type !== 'string') {
+      if (!node.type) {
         Transforms.setNodes(editor, { type: 'paragraph' }, { at: path });
         return;
       }
-      if (typeof node.align !== 'string') {
+      if (!node.align) {
         Transforms.setNodes(editor, { align: 'left' }, { at: path });
+        return;
+      }
+      if (!node.fontFamily) {
+        Transforms.setNodes(editor, { fontFamily: 'Arial' }, { at: path });
+        return;
+      }
+      if (!node.fontSize) {
+        Transforms.setNodes(editor, { fontSize: '11pt' }, { at: path });
         return;
       }
     }
@@ -90,37 +94,112 @@ const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus, title 
   const renderElement = useCallback(props => {
     const { element, attributes, children } = props;
     
-    const style = {
+    const baseStyle = {
       textAlign: element.align || 'left',
-      fontFamily: element.marks?.fontFamily || 'Arial',
-      fontSize: element.marks?.fontSize || '11pt',
+      fontFamily: element.fontFamily || 'Arial',
     };
 
     switch (element.type) {
+      case 'heading-1':
+        return (
+          <div 
+            {...attributes} 
+            style={{
+              ...baseStyle,
+              fontSize: '24px',
+              fontWeight: 'bold',
+              lineHeight: '1.4',
+              marginTop: '20px',
+              marginBottom: '10px',
+              color: '#1A202C',
+            }}
+          >
+            {children}
+          </div>
+        );
+      
+      case 'heading-2':
+        return (
+          <div 
+            {...attributes} 
+            style={{
+              ...baseStyle,
+              fontSize: '20px',
+              fontWeight: 'bold',
+              lineHeight: '1.4',
+              marginTop: '18px',
+              marginBottom: '8px',
+              color: '#2D3748',
+            }}
+          >
+            {children}
+          </div>
+        );
+
+      case 'block-quote':
+        return (
+          <div 
+            {...attributes} 
+            style={{
+              ...baseStyle,
+              borderLeft: '4px solid #718096',
+              paddingLeft: '16px',
+              marginLeft: '0',
+              marginRight: '0',
+              marginTop: '16px',
+              marginBottom: '16px',
+              fontStyle: 'italic',
+              color: '#4A5568',
+              backgroundColor: 'rgba(0,0,0,0.03)',
+              padding: '12px 16px',
+              borderRadius: '0 4px 4px 0',
+            }}
+          >
+            {children}
+          </div>
+        );
+
       case 'bullet-list':
         return (
-          <li 
+          <div 
             style={{
-              ...style,
-              listStyleType: 'none',
-              paddingLeft: '1.5em',
-              position: 'relative'
+              ...baseStyle,
+              paddingLeft: '24px',
+              position: 'relative',
+              marginTop: '8px',
+              marginBottom: '8px',
             }} 
             {...attributes}
           >
             <span
+              contentEditable={false}
               style={{
                 position: 'absolute',
-                left: '0.5em',
+                left: '8px',
+                userSelect: 'none',
+                color: '#4A5568',
               }}
             >
               •
             </span>
             {children}
-          </li>
+          </div>
         );
+
       default:
-        return <p style={style} {...attributes}>{children}</p>;
+        return (
+          <div 
+            style={{
+              ...baseStyle,
+              marginTop: '8px',
+              marginBottom: '8px',
+              lineHeight: '1.6',
+            }} 
+            {...attributes}
+          >
+            {children}
+          </div>
+        );
     }
   }, []);
 
