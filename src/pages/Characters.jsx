@@ -15,21 +15,26 @@ import {
   TabPanels,
   TabPanel,
   Tab,
+  HStack,
 } from '@chakra-ui/react';
 import { FiPlus } from 'react-icons/fi';
 import CharacterCard from '../components/characters/CharacterCard';
 import NewCharacterModal from '../components/characters/NewCharacterModal';
 import RelationshipView from '../components/characters/RelationshipView';
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import EditCharacterModal from '../components/characters/EditCharacterModal';
 
 function Characters() {
   const { currentUser } = useAuth();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isNewOpen, onOpen: onNewOpen, onClose: onNewClose } = useDisclosure();
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
+  const [editingCharacter, setEditingCharacter] = useState(null);
 
   // Fetch characters from Firestore
   useEffect(() => {
@@ -108,6 +113,37 @@ function Characters() {
     }
   };
 
+  // Add edit handler
+  const handleEditCharacter = async (character) => {
+    setEditingCharacter(character);
+    onEditOpen();
+  };
+
+  // Add save handler
+  const handleSaveCharacter = async (updatedCharacter) => {
+    try {
+      const characterRef = doc(db, 'characters', updatedCharacter.id);
+      await updateDoc(characterRef, {
+        ...updatedCharacter,
+        updatedAt: new Date(),
+      });
+      
+      toast({
+        title: 'Character updated',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Error updating character:', error);
+      toast({
+        title: 'Error updating character',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -122,13 +158,27 @@ function Characters() {
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
-        <Heading
-          size="xl"
-          bgGradient="linear(to-r, brand.primary, brand.secondary)"
-          bgClip="text"
-        >
-          Characters
-        </Heading>
+        <HStack justify="space-between">
+          <Heading
+            size="xl"
+            bgGradient="linear(to-r, brand.primary, brand.secondary)"
+            bgClip="text"
+          >
+            Characters
+          </Heading>
+          <Button
+            leftIcon={<FiPlus />}
+            onClick={onNewOpen}
+            bg="linear-gradient(135deg, brand.primary, brand.secondary)"
+            color="white"
+            _hover={{
+              transform: 'translateY(-2px)',
+              shadow: 'lg',
+            }}
+          >
+            New Character
+          </Button>
+        </HStack>
 
         <Tabs variant="soft-rounded" colorScheme="pink">
           <TabList>
@@ -138,44 +188,18 @@ function Characters() {
 
           <TabPanels>
             <TabPanel>
-              <Box display="flex" justifyContent="flex-end" mb={4}>
-                <Button
-                  leftIcon={<FiPlus />}
-                  onClick={onOpen}
-                  bg="linear-gradient(135deg, brand.primary, brand.secondary)"
-                  color="white"
-                  _hover={{
-                    transform: 'translateY(-1px)',
-                    shadow: 'lg',
-                  }}
-                >
-                  New Character
-                </Button>
-              </Box>
-
-              {characters.length === 0 ? (
-                <Box 
-                  p={8} 
-                  textAlign="center" 
-                  bg="brand.dark.100" 
-                  borderRadius="lg"
-                  borderColor="brand.dark.300"
-                  borderWidth="1px"
-                >
-                  <Text color="brand.text.secondary">
-                    No characters yet. Create one to get started!
-                  </Text>
-                </Box>
+              {loading ? (
+                <Text>Loading...</Text>
+              ) : characters.length === 0 ? (
+                <Text>No characters yet. Create one to get started!</Text>
               ) : (
-                <Grid 
-                  templateColumns="repeat(auto-fill, minmax(300px, 1fr))" 
-                  gap={6}
-                >
+                <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
                   {characters.map(character => (
-                    <CharacterCard 
-                      key={character.id} 
-                      character={character} 
+                    <CharacterCard
+                      key={character.id}
+                      character={character}
                       onDelete={handleDeleteCharacter}
+                      onEdit={handleEditCharacter}
                     />
                   ))}
                 </Grid>
@@ -183,15 +207,25 @@ function Characters() {
             </TabPanel>
 
             <TabPanel>
-              <RelationshipView />
+              <RelationshipView 
+                onEdit={handleEditCharacter}
+                onDelete={handleDeleteCharacter}
+              />
             </TabPanel>
           </TabPanels>
         </Tabs>
 
         <NewCharacterModal 
-          isOpen={isOpen} 
-          onClose={onClose}
+          isOpen={isNewOpen} 
+          onClose={onNewClose}
           onCreateCharacter={handleCreateCharacter}
+        />
+        
+        <EditCharacterModal
+          isOpen={isEditOpen}
+          onClose={onEditClose}
+          character={editingCharacter}
+          onSave={handleSaveCharacter}
         />
       </VStack>
     </Container>

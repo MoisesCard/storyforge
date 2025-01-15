@@ -25,7 +25,16 @@ const CustomNode = ({ data }) => {
       tabIndex={0}
       aria-label={`${data.label} - ${data.role}`}
     >
-      {/* Top handles */}
+      <VStack spacing={2} width="100%">
+        <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+          {data.label}
+        </Text>
+        <Text fontSize="lg" color="gray.600">
+          {data.role}
+        </Text>
+      </VStack>
+
+      {/* Handles */}
       <Handle
         type="target"
         position={Position.Top}
@@ -40,17 +49,6 @@ const CustomNode = ({ data }) => {
         style={{ ...sourceHandleStyle, top: -8, left: '57%' }}
         isConnectable={true}
       />
-
-      <VStack spacing={2} pointerEvents="none" align="center" width="100%">
-        <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-          {data.label || "Unnamed Character"}
-        </Text>
-        <Text fontSize="lg" color="gray.600">
-          {data.role || "No role assigned"}
-        </Text>
-      </VStack>
-
-      {/* Bottom handles */}
       <Handle
         type="target"
         position={Position.Bottom}
@@ -65,8 +63,6 @@ const CustomNode = ({ data }) => {
         style={{ ...sourceHandleStyle, bottom: -8, left: '57%' }}
         isConnectable={true}
       />
-
-      {/* Left handles */}
       <Handle
         type="target"
         position={Position.Left}
@@ -81,8 +77,6 @@ const CustomNode = ({ data }) => {
         style={{ ...sourceHandleStyle, left: -8, top: '57%' }}
         isConnectable={true}
       />
-
-      {/* Right handles */}
       <Handle
         type="target"
         position={Position.Right}

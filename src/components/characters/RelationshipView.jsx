@@ -16,7 +16,7 @@ import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import RelationshipDiagram from './RelationshipDiagram';
 
-function RelationshipView() {
+function RelationshipView({ onEdit, onDelete }) {
   const { currentUser } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -100,6 +100,7 @@ function RelationshipView() {
                     characters={characters}
                     isOpen={isOpen}
                     onClose={onClose}
+                    projectId={selectedProject?.id}
                   />
                 </Box>
               )}
