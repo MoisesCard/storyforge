@@ -1,88 +1,146 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Heading,
-  Text,
   VStack,
   HStack,
+  Text,
+  Avatar,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   Badge,
+  Tooltip,
 } from '@chakra-ui/react';
-import { FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiMoreVertical, FiEdit2, FiTrash2, FiBook } from 'react-icons/fi';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 
-function CharacterCard({ character, onDelete }) {
+const CharacterCard = ({ character, onEdit, onDelete }) => {
+  const [projectName, setProjectName] = useState('');
+
+  // Fetch project name when component mounts
+  useEffect(() => {
+    const fetchProjectName = async () => {
+      if (!character.projectId) return;
+      
+      try {
+        const projectDoc = await getDoc(doc(db, 'projects', character.projectId));
+        if (projectDoc.exists()) {
+          setProjectName(projectDoc.data().title);
+        }
+      } catch (error) {
+        console.error('Error fetching project:', error);
+      }
+    };
+
+    fetchProjectName();
+  }, [character.projectId]);
+
   return (
     <Box
       bg="brand.dark.100"
-      p={6}
+      p={4}
       borderRadius="xl"
-      position="relative"
-      overflow="hidden"
-      _before={{
-        content: '""',
-        position: 'absolute',
-        top: '-2px',
-        left: '-2px',
-        right: '-2px',
-        bottom: '-2px',
-        bg: 'linear-gradient(45deg, brand.primary, brand.secondary)',
-        zIndex: 0,
-        borderRadius: 'xl',
-        opacity: 0,
-        transition: 'opacity 0.3s',
-      }}
+      borderWidth="1px"
+      borderColor="brand.dark.300"
+      transition="all 0.2s"
       _hover={{
-        transform: 'translateY(-4px)',
-        '&::before': { opacity: 0.3 },
+        transform: 'translateY(-2px)',
+        shadow: 'lg',
       }}
-      transition="all 0.3s"
     >
-      <VStack align="start" spacing={4} position="relative" zIndex={1}>
-        <HStack w="full" justify="space-between">
-          <Heading size="md" color="white">
-            {character.name}
-          </Heading>
-          <HStack>
-            <IconButton
-              icon={<FiEdit2 />}
-              variant="ghost"
-              size="sm"
-              aria-label="Edit character"
-              _hover={{
-                bg: 'rgba(255, 255, 255, 0.1)',
-              }}
-            />
-            <IconButton
-              icon={<FiTrash2 />}
-              variant="ghost"
-              colorScheme="red"
-              size="sm"
-              aria-label="Delete character"
-              onClick={() => onDelete(character.id)}
-              _hover={{
-                bg: 'rgba(255, 0, 0, 0.2)',
-              }}
-            />
+      <HStack spacing={4} align="start">
+        <Avatar
+          size="lg"
+          name={character.name}
+          src={character.imageUrl}
+          bg="brand.primary"
+        />
+        <VStack align="start" flex={1} spacing={2}>
+          <HStack justify="space-between" w="100%">
+            <VStack align="start" spacing={1}>
+              <Text fontWeight="bold" color="white">
+                {character.name}
+              </Text>
+              <Text fontSize="sm" color="brand.text.secondary">
+                {character.role}
+              </Text>
+            </VStack>
+            <Menu>
+              <MenuButton
+                as={IconButton}
+                icon={<FiMoreVertical />}
+                variant="ghost"
+                size="sm"
+              />
+              <MenuList bg="brand.dark.200">
+                <MenuItem 
+                  icon={<FiEdit2 />} 
+                  onClick={() => onEdit(character)}
+                  _hover={{ bg: 'brand.dark.300' }}
+                >
+                  Edit
+                </MenuItem>
+                <MenuItem 
+                  icon={<FiTrash2 />} 
+                  onClick={() => onDelete(character.id)}
+                  color="red.400"
+                  _hover={{ bg: 'brand.dark.300' }}
+                >
+                  Delete
+                </MenuItem>
+              </MenuList>
+            </Menu>
           </HStack>
-        </HStack>
 
-        <Badge colorScheme="blue">{character.role}</Badge>
-        
-        <Text color="brand.text.secondary" noOfLines={3}>
-          {character.description}
-        </Text>
+          {/* Project Badge */}
+          {projectName && (
+            <Tooltip label="Linked Project" placement="top">
+              <Badge
+                display="flex"
+                alignItems="center"
+                gap={1}
+                colorScheme="blue"
+                variant="subtle"
+                px={2}
+                py={1}
+                borderRadius="full"
+              >
+                <FiBook size={12} />
+                {projectName}
+              </Badge>
+            </Tooltip>
+          )}
+          
+          {/* Character Traits */}
+          <HStack spacing={2} wrap="wrap">
+            {character.traits.map((trait, index) => (
+              <Badge
+                key={index}
+                colorScheme="purple"
+                variant="subtle"
+                px={2}
+                py={1}
+                borderRadius="full"
+              >
+                {trait}
+              </Badge>
+            ))}
+          </HStack>
 
-        <VStack align="start" spacing={2} w="full">
-          <Text color="brand.text.secondary" fontSize="sm">
-            Age: {character.age}
-          </Text>
-          <Text color="brand.text.secondary" fontSize="sm">
-            Occupation: {character.occupation}
+          <Text 
+            fontSize="sm" 
+            color="brand.text.secondary"
+            noOfLines={2}
+          >
+            {character.description}
           </Text>
         </VStack>
-      </VStack>
+      </HStack>
     </Box>
   );
-}
+};
 
 export default CharacterCard; 

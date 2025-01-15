@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -12,28 +12,65 @@ import {
   Input,
   Textarea,
   VStack,
+  Avatar,
+  Center,
+  IconButton,
+  HStack,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  InputGroup,
+  InputRightElement,
+  useToast,
+  Box,
   Select,
 } from '@chakra-ui/react';
-
-const ROLES = [
-  'Protagonist',
-  'Antagonist',
-  'Supporting Character',
-  'Mentor',
-  'Love Interest',
-  'Sidekick',
-  'Other'
-];
+import { FiCamera, FiPlus } from 'react-icons/fi';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../firebase';
+import { useAuth } from '../../contexts/AuthContext';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 function NewCharacterModal({ isOpen, onClose, onCreateCharacter }) {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     role: '',
     age: '',
     occupation: '',
     description: '',
+    imageUrl: '',
+    traits: [],
+    projectId: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [traitInput, setTraitInput] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef();
+  const toast = useToast();
+  const [projects, setProjects] = useState([]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      if (!currentUser) return;
+      
+      const q = query(
+        collection(db, 'projects'),
+        where('userId', '==', currentUser.uid)
+      );
+
+      const snapshot = await getDocs(q);
+      const projectsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        title: doc.data().title
+      }));
+      setProjects(projectsData);
+    };
+
+    if (isOpen) {
+      fetchProjects();
+    }
+  }, [isOpen, currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,154 +80,253 @@ function NewCharacterModal({ isOpen, onClose, onCreateCharacter }) {
     }));
   };
 
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
     try {
-      await onCreateCharacter(formData);
-      setFormData({
-        name: '',
-        role: '',
-        age: '',
-        occupation: '',
-        description: '',
-      });
+      setIsUploading(true);
+      const storageRef = ref(storage, `characterImages/${currentUser.uid}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      setFormData(prev => ({
+        ...prev,
+        imageUrl: url
+      }));
     } catch (error) {
-      console.error('Error creating character:', error);
+      toast({
+        title: 'Error uploading image',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsUploading(false);
     }
+  };
+
+  const handleAddTrait = (e) => {
+    e.preventDefault();
+    if (traitInput.trim() && !formData.traits.includes(traitInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        traits: [...prev.traits, traitInput.trim()]
+      }));
+      setTraitInput('');
+    }
+  };
+
+  const handleRemoveTrait = (traitToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      traits: prev.traits.filter(trait => trait !== traitToRemove)
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onCreateCharacter(formData);
+    setFormData({
+      name: '',
+      role: '',
+      age: '',
+      occupation: '',
+      description: '',
+      imageUrl: '',
+      traits: [],
+      projectId: '',
+    });
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalOverlay />
       <ModalContent bg="brand.dark.100">
-        <ModalHeader color="brand.text.primary">Create New Character</ModalHeader>
-        <ModalBody>
-          <VStack spacing={4}>
-            <FormControl isRequired>
-              <FormLabel color="brand.text.secondary">Name</FormLabel>
-              <Input
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Character name"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
-              />
-            </FormControl>
+        <ModalHeader color="white">Create New Character</ModalHeader>
+        <form onSubmit={handleSubmit}>
+          <ModalBody>
+            <VStack spacing={6}>
+              {/* Avatar Upload */}
+              <FormControl>
+                <Center>
+                  <Box position="relative">
+                    <Avatar
+                      size="2xl"
+                      src={formData.imageUrl}
+                      name={formData.name}
+                      bg="brand.primary"
+                      opacity={isUploading ? 0.5 : 1}
+                    />
+                    <IconButton
+                      icon={<FiCamera />}
+                      onClick={() => fileInputRef.current?.click()}
+                      position="absolute"
+                      bottom="0"
+                      right="0"
+                      rounded="full"
+                      bg="brand.primary"
+                      color="white"
+                      _hover={{
+                        bg: 'brand.secondary',
+                      }}
+                    />
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      display="none"
+                      onChange={handleImageUpload}
+                    />
+                  </Box>
+                </Center>
+              </FormControl>
 
-            <FormControl isRequired>
-              <FormLabel color="brand.text.secondary">Role</FormLabel>
-              <Select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                placeholder="Select role"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
-              >
-                {ROLES.map(role => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </Select>
-            </FormControl>
+              {/* Existing Fields */}
+              <FormControl isRequired>
+                <FormLabel color="brand.text.secondary">Name</FormLabel>
+                <Input
+                  name="name"
+                  placeholder="Character name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  bg="brand.dark.200"
+                  borderColor="brand.dark.300"
+                />
+              </FormControl>
 
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Age</FormLabel>
-              <Input
-                name="age"
-                value={formData.age}
-                onChange={handleChange}
-                placeholder="Character age"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
-              />
-            </FormControl>
+              <FormControl isRequired>
+                <FormLabel color="brand.text.secondary">Role</FormLabel>
+                <Input
+                  name="role"
+                  placeholder="Select role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  bg="brand.dark.200"
+                  borderColor="brand.dark.300"
+                />
+              </FormControl>
 
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Occupation</FormLabel>
-              <Input
-                name="occupation"
-                value={formData.occupation}
-                onChange={handleChange}
-                placeholder="Character occupation"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
-              />
-            </FormControl>
+              <FormControl>
+                <FormLabel color="brand.text.secondary">Age</FormLabel>
+                <Input
+                  name="age"
+                  placeholder="Character age"
+                  value={formData.age}
+                  onChange={handleChange}
+                  bg="brand.dark.200"
+                  borderColor="brand.dark.300"
+                />
+              </FormControl>
 
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Description</FormLabel>
-              <Textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Character description"
-                variant="filled"
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                _hover={{ bg: 'brand.dark.300' }}
-                _focus={{ 
-                  bg: 'brand.dark.300',
-                  borderColor: 'brand.primary'
-                }}
-                rows={4}
-              />
-            </FormControl>
-          </VStack>
-        </ModalBody>
+              <FormControl>
+                <FormLabel color="brand.text.secondary">Occupation</FormLabel>
+                <Input
+                  name="occupation"
+                  placeholder="Character occupation"
+                  value={formData.occupation}
+                  onChange={handleChange}
+                  bg="brand.dark.200"
+                  borderColor="brand.dark.300"
+                />
+              </FormControl>
 
-        <ModalFooter gap={3}>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            isDisabled={isSubmitting}
-            _hover={{ bg: 'brand.dark.300' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            bg="linear-gradient(135deg, brand.primary, brand.secondary)"
-            color="white"
-            onClick={handleSubmit}
-            isLoading={isSubmitting}
-            loadingText="Creating..."
-            _hover={{
-              transform: 'translateY(-1px)',
-              shadow: 'lg',
-            }}
-            transition="all 0.2s"
-          >
-            Create Character
-          </Button>
-        </ModalFooter>
+              <FormControl isRequired>
+                <FormLabel color="brand.text.secondary">Project</FormLabel>
+                <Select
+                  name="projectId"
+                  value={formData.projectId}
+                  onChange={handleChange}
+                  placeholder="Select project"
+                  bg="brand.dark.200"
+                  borderColor="brand.dark.300"
+                >
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>
+                      {project.title}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Traits Field */}
+              <FormControl>
+                <FormLabel color="brand.text.secondary">Traits</FormLabel>
+                <InputGroup>
+                  <Input
+                    value={traitInput}
+                    onChange={(e) => setTraitInput(e.target.value)}
+                    placeholder="Add a trait..."
+                    bg="brand.dark.200"
+                    borderColor="brand.dark.300"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAddTrait(e);
+                      }
+                    }}
+                  />
+                  <InputRightElement>
+                    <IconButton
+                      icon={<FiPlus />}
+                      size="sm"
+                      onClick={handleAddTrait}
+                      variant="ghost"
+                    />
+                  </InputRightElement>
+                </InputGroup>
+                <Box mt={2}>
+                  <HStack spacing={2} wrap="wrap">
+                    {formData.traits.map((trait, index) => (
+                      <Tag
+                        key={index}
+                        size="md"
+                        borderRadius="full"
+                        variant="subtle"
+                        colorScheme="purple"
+                      >
+                        <TagLabel>{trait}</TagLabel>
+                        <TagCloseButton
+                          onClick={() => handleRemoveTrait(trait)}
+                        />
+                      </Tag>
+                    ))}
+                  </HStack>
+                </Box>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel color="brand.text.secondary">Description</FormLabel>
+                <Textarea
+                  name="description"
+                  placeholder="Character description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  bg="brand.dark.200"
+                  borderColor="brand.dark.300"
+                  resize="vertical"
+                  minH="100px"
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              bg="linear-gradient(135deg, brand.primary, brand.secondary)"
+              color="white"
+              _hover={{
+                transform: 'translateY(-2px)',
+                shadow: 'lg',
+              }}
+            >
+              Create Character
+            </Button>
+          </ModalFooter>
+        </form>
       </ModalContent>
     </Modal>
   );
