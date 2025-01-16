@@ -6,7 +6,6 @@ import {
   FormLabel,
   Input,
   Button,
-  Heading,
   Text,
   Link,
   FormErrorMessage,
@@ -14,7 +13,8 @@ import {
 import { keyframes } from '@emotion/react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import AuthTitle from '../components/auth/AuthTitle';
+import AnimatedTitle from '../components/common/AnimatedTitle';
+import TypewriterText from '../components/common/TypewriterText';
 
 // Define shake animation
 const shakeAnimation = keyframes`
@@ -56,16 +56,27 @@ function Login() {
   };
 
   return (
-    <Box maxW="md" mx="auto" mt={16}>
-      <AuthTitle />
-      <VStack spacing={8} align="stretch" p={8} bg="brand.dark.100" borderRadius="xl">
-        <Heading
+    <Box maxW="md" mx="auto" mt={8}>
+      <VStack spacing={0} mb={12}>
+        <AnimatedTitle
+          size="2xl"
           textAlign="center"
-          bgGradient="linear(to-r, brand.primary, brand.secondary)"
-          bgClip="text"
+          variant="story-forge"
+          w="256.898px"
+          h="60px"
         >
-          Sign In
-        </Heading>
+          Story Forge
+        </AnimatedTitle>
+        <TypewriterText 
+          text="Where stories come to life"
+          color="brand.text.secondary"
+          fontSize="md"
+          textAlign="center"
+          mt={0}
+        />
+      </VStack>
+      
+      <VStack spacing={8} align="stretch" p={8} bg="brand.dark.100" borderRadius="xl">
         <form onSubmit={handleSubmit}>
           <VStack spacing={4}>
             <FormControl isInvalid={error}>

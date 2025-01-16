@@ -3,7 +3,6 @@ import {
   Box,
   Container,
   Grid,
-  Heading,
   Text,
   VStack,
   Spinner,
@@ -21,6 +20,7 @@ import ProjectCard from '../components/projects/ProjectCard';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import NewProjectModal from '../components/modals/NewProjectModal';
+import AnimatedTitle from '../components/common/AnimatedTitle';
 
 function Library() {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -98,13 +98,7 @@ function Library() {
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
         <HStack justify="space-between" align="center">
-          <Heading
-            size="xl"
-            bgGradient="linear(to-r, brand.primary, brand.secondary)"
-            bgClip="text"
-          >
-            Library
-          </Heading>
+          <AnimatedTitle mb={8}>Library</AnimatedTitle>
           <Button
             leftIcon={<FiPlus />}
             onClick={onOpen}

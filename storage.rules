@@ -1,13 +1,15 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /profileImages/{userId}/{allPaths=**} {
-      allow read: if request.auth != null;
+    // Profile pictures
+    match /profilePictures/{userId}/{fileName} {
+      allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-    // Add rules for character images
-    match /characterImages/{userId}/{allPaths=**} {
-      allow read: if request.auth != null;
+    
+    // Cover photos
+    match /coverPhotos/{userId}/{fileName} {
+      allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
   }

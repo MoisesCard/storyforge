@@ -13,11 +13,12 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import { FiPlus, FiUsers, FiMap, FiBook } from 'react-icons/fi';
 import NewProjectModal from '../components/modals/NewProjectModal';
+import AnimatedTitle from '../components/common/AnimatedTitle';
 
 const DashboardCard = ({ title, description, icon, to, onClick }) => {
   const CardContent = (
     <Box
-      bg="brand.dark.100"
+      bg="brand.dark.200"
       p={6}
       borderRadius="xl"
       position="relative"
@@ -25,6 +26,12 @@ const DashboardCard = ({ title, description, icon, to, onClick }) => {
       cursor="pointer"
       w="100%"
       textAlign="left"
+      transition="all 0.2s"
+      _hover={{
+        transform: 'translateY(-2px)',
+        shadow: 'lg',
+        '&::before': { opacity: 0.3 },
+      }}
       _before={{
         content: '""',
         position: 'absolute',
@@ -38,20 +45,32 @@ const DashboardCard = ({ title, description, icon, to, onClick }) => {
         opacity: 0,
         transition: 'opacity 0.3s',
       }}
-      _hover={{
-        transform: 'translateY(-4px)',
-        '&::before': { opacity: 0.3 },
-      }}
-      transition="all 0.3s"
     >
-      <VStack spacing={4} position="relative" zIndex={1}>
-        <Icon as={icon} boxSize={8} color="brand.primary" />
-        <Heading size="md" color="white">
-          {title}
-        </Heading>
-        <Text color="brand.text.secondary" textAlign="center">
-          {description}
-        </Text>
+      <VStack 
+        spacing={4} 
+        position="relative" 
+        zIndex={1}
+        align="flex-start"
+      >
+        <Icon 
+          as={icon} 
+          boxSize={8} 
+          color="brand.primary"
+        />
+        <Box>
+          <Heading 
+            size="md" 
+            color="white"
+            mb={2}
+          >
+            {title}
+          </Heading>
+          <Text 
+            color="brand.text.secondary"
+          >
+            {description}
+          </Text>
+        </Box>
       </VStack>
     </Box>
   );
@@ -77,13 +96,7 @@ function Dashboard() {
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
-        <Heading
-          size="xl"
-          bgGradient="linear(to-r, brand.primary, brand.secondary)"
-          bgClip="text"
-        >
-          Dashboard
-        </Heading>
+        <AnimatedTitle mb={8}>Dashboard</AnimatedTitle>
 
         <SimpleGrid columns={[1, 2, 3]} spacing={6}>
           <DashboardCard

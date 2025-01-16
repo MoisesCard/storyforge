@@ -1,56 +1,50 @@
 import { extendTheme } from '@chakra-ui/react';
 
-const config = {
-  initialColorMode: 'dark',
-  useSystemColorMode: false,
-};
-
 const theme = extendTheme({
-  config,
   styles: {
-    global: (props) => ({
-      'html, body': {
-        backgroundColor: '#140F1D',
+    global: {
+      body: {
+        bg: '#0F172A', // Deep blue-slate background
         color: 'white',
       },
-      '#root': {
-        backgroundColor: '#140F1D',
-        minHeight: '100vh',
-      },
-    }),
+    },
   },
   colors: {
     brand: {
-      primary: '#FF4D8D',    
-      secondary: '#FF8B3E',  
+      primary: '#6D28D9',   // Deep purple
+      secondary: '#0D9488', // Rich teal
+      accent: '#F59E0B',    // Warm gold
+      gradient: 'linear-gradient(135deg, #6D28D9, #0D9488)', // Standard gradient
       dark: {
-        100: '#1A1625',      
-        200: '#231C31',      
-        300: '#2D2440',      
-        400: '#382D4D',      
+        100: '#1E293B', // Slate blue
+        200: '#334155', // Lighter slate
+        300: '#475569', // Even lighter slate
       },
       text: {
-        primary: '#E2E8F0',
-        secondary: '#A0AEC0',
+        primary: '#FFFFFF',
+        secondary: '#94A3B8',
       },
     },
   },
   components: {
     Button: {
+      baseStyle: {
+        _focus: {
+          boxShadow: '0 0 0 3px #6D28D9',
+        },
+      },
       variants: {
-        solid: {
-          bg: 'brand.primary',
+        gradient: {
+          bg: 'brand.gradient',
           color: 'white',
           _hover: {
-            bg: 'brand.secondary',
+            transform: 'translateY(-2px)',
+            shadow: 'lg',
           },
-        },
-        ghost: {
-          color: 'brand.text.secondary',
-          _hover: {
-            bg: 'brand.dark.300',
-            color: 'white',
+          _active: {
+            transform: 'translateY(0)',
           },
+          transition: 'all 0.2s',
         },
       },
     },
@@ -67,6 +61,34 @@ const theme = extendTheme({
               borderColor: 'brand.primary',
             },
           },
+        },
+      },
+      defaultProps: {
+        variant: 'filled',
+      },
+    },
+    Textarea: {
+      variants: {
+        filled: {
+          bg: 'brand.dark.200',
+          _hover: {
+            bg: 'brand.dark.300',
+          },
+          _focus: {
+            bg: 'brand.dark.300',
+            borderColor: 'brand.primary',
+          },
+        },
+      },
+      defaultProps: {
+        variant: 'filled',
+      },
+    },
+    Heading: {
+      variants: {
+        gradient: {
+          bgGradient: 'linear(to-r, brand.primary, brand.secondary)',
+          bgClip: 'text',
         },
       },
     },

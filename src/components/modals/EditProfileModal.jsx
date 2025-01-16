@@ -18,22 +18,26 @@ import {
   useToast,
   Box,
   Spinner,
+  Image,
 } from '@chakra-ui/react';
 import { FiCamera } from 'react-icons/fi';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 
-function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
+function EditProfileModal({ isOpen, onClose, currentProfile = {}, onUpdate }) {
   const [formData, setFormData] = useState({
-    username: currentProfile.username || '',
-    bio: currentProfile.bio || '',
-    location: currentProfile.location || '',
-    photoURL: currentProfile.photoURL || '',
+    username: currentProfile?.username || '',
+    bio: currentProfile?.bio || '',
+    location: currentProfile?.location || '',
+    photoURL: currentProfile?.photoURL || '',
+    coverPhotoURL: currentProfile?.coverPhotoURL || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const fileInputRef = useRef();
+  const coverInputRef = useRef();
   const toast = useToast();
 
   const handleChange = (e) => {
@@ -44,7 +48,7 @@ function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
     }));
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e, type = 'profile') => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -70,26 +74,25 @@ function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
       return;
     }
 
-    setUploadingImage(true);
+    const isProfilePic = type === 'profile';
+    const setUploading = isProfilePic ? setUploadingImage : setUploadingCover;
+    setUploading(true);
+
     try {
-      // Add timestamp to filename to prevent conflicts
       const fileName = `${Date.now()}-${file.name}`;
-      const storageRef = ref(storage, `profilePictures/${currentProfile.userId}/${fileName}`);
+      const folder = isProfilePic ? 'profilePictures' : 'coverPhotos';
+      const storageRef = ref(storage, `${folder}/${currentProfile.userId}/${fileName}`);
       
-      console.log('Starting upload...'); // Debug log
       await uploadBytes(storageRef, file);
-      console.log('Upload complete, getting URL...'); // Debug log
-      
       const downloadURL = await getDownloadURL(storageRef);
-      console.log('Got download URL:', downloadURL); // Debug log
       
       setFormData(prev => ({
         ...prev,
-        photoURL: downloadURL
+        [isProfilePic ? 'photoURL' : 'coverPhotoURL']: downloadURL
       }));
 
       toast({
-        title: 'Image uploaded',
+        title: `${isProfilePic ? 'Profile' : 'Cover'} image uploaded`,
         status: 'success',
         duration: 3000,
       });
@@ -102,7 +105,7 @@ function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
         duration: 5000,
       });
     } finally {
-      setUploadingImage(false);
+      setUploading(false);
     }
   };
 
@@ -114,8 +117,12 @@ function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
         bio: formData.bio,
         location: formData.location,
         photoURL: formData.photoURL,
+        coverPhotoURL: formData.coverPhotoURL,
       });
-      onUpdate(formData);
+      onUpdate({
+        ...formData,
+        coverPhoto: formData.coverPhotoURL
+      });
       onClose();
       toast({
         title: 'Profile updated',
@@ -142,6 +149,54 @@ function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
         <ModalHeader color="white">Edit Profile</ModalHeader>
         <ModalBody>
           <VStack spacing={6}>
+            {/* Cover Photo Upload */}
+            <FormControl>
+              <Center>
+                <Box position="relative" w="100%" h="100px" mb={4}>
+                  <Image
+                    src={formData.coverPhotoURL}
+                    fallbackSrc="https://via.placeholder.com/800x200"
+                    alt="Cover"
+                    w="100%"
+                    h="100%"
+                    objectFit="cover"
+                    borderRadius="md"
+                    opacity={uploadingCover ? 0.5 : 1}
+                  />
+                  {uploadingCover && (
+                    <Spinner
+                      position="absolute"
+                      top="50%"
+                      left="50%"
+                      transform="translate(-50%, -50%)"
+                      color="brand.primary"
+                    />
+                  )}
+                  <IconButton
+                    icon={<FiCamera />}
+                    isLoading={uploadingCover}
+                    onClick={() => coverInputRef.current?.click()}
+                    position="absolute"
+                    bottom={2}
+                    right={2}
+                    rounded="full"
+                    bg="brand.primary"
+                    color="white"
+                    _hover={{
+                      bg: 'brand.secondary',
+                    }}
+                  />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    ref={coverInputRef}
+                    display="none"
+                    onChange={(e) => handleImageUpload(e, 'cover')}
+                  />
+                </Box>
+              </Center>
+            </FormControl>
+
             {/* Profile Picture Upload */}
             <FormControl>
               <Center>
@@ -180,7 +235,7 @@ function EditProfileModal({ isOpen, onClose, currentProfile, onUpdate }) {
                     accept="image/*"
                     ref={fileInputRef}
                     display="none"
-                    onChange={handleImageUpload}
+                    onChange={(e) => handleImageUpload(e, 'profile')}
                   />
                 </Box>
               </Center>

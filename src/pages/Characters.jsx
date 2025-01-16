@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Container,
-  Heading,
   Button,
   HStack,
   Flex,
@@ -16,6 +15,7 @@ import NewCharacterModal from '../components/characters/NewCharacterModal';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import AnimatedTitle from '../components/common/AnimatedTitle';
 
 function Characters() {
   const [activeTab, setActiveTab] = useState('list');
@@ -53,13 +53,7 @@ function Characters() {
   return (
     <Container maxW="container.xl" py={8}>
       <Flex justify="space-between" align="center" mb={8}>
-        <Heading
-          size="xl"
-          bgGradient="linear(to-r, brand.primary, brand.secondary)"
-          bgClip="text"
-        >
-          Characters
-        </Heading>
+        <AnimatedTitle mb={8}>Characters</AnimatedTitle>
         <Button
           onClick={onOpen}
           bg="linear-gradient(135deg, brand.primary, brand.secondary)"

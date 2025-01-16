@@ -15,6 +15,7 @@ const EditorPage = React.lazy(() => import('./pages/EditorPage'));
 const Library = React.lazy(() => import('./pages/Library'));
 const Characters = React.lazy(() => import('./pages/Characters'));
 const WorldBuilder = React.lazy(() => import('./pages/WorldBuilder'));
+const ProjectWorld = React.lazy(() => import('./pages/ProjectWorld'));
 
 console.log('Environment check:', {
   hasApiKey: !!process.env.REACT_APP_FIREBASE_API_KEY,
@@ -54,6 +55,11 @@ function App() {
                 <Route path="/world-builder" element={
                   <PrivateRoute>
                     <WorldBuilder />
+                  </PrivateRoute>
+                } />
+                <Route path="/world-builder/:projectId" element={
+                  <PrivateRoute>
+                    <ProjectWorld />
                   </PrivateRoute>
                 } />
                 <Route path="/profile" element={
