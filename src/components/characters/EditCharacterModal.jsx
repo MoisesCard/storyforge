@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -20,11 +20,17 @@ import {
   InputRightElement,
   IconButton,
   Select,
+  Avatar,
+  Center,
+  Box,
+  useToast,
 } from '@chakra-ui/react';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiCamera } from 'react-icons/fi';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../firebase';
 
 function EditCharacterModal({ isOpen, onClose, character, onSave }) {
   const { currentUser } = useAuth();
@@ -35,8 +41,53 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
     description: '',
     traits: [],
     projectId: '',
+    imageUrl: '',
   });
   const [traitInput, setTraitInput] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef();
+  const toast = useToast();
+
+  // Initialize form data when character prop changes
+  useEffect(() => {
+    if (character) {
+      setFormData({
+        name: character.name || '',
+        role: character.role || '',
+        description: character.description || '',
+        traits: character.traits || [],
+        projectId: character.projectId || '',
+        imageUrl: character.imageUrl || '',
+      });
+    }
+  }, [character]);
+
+  // Add image upload handler
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const storageRef = ref(storage, `characterImages/${currentUser.uid}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      setFormData(prev => ({
+        ...prev,
+        imageUrl: url
+      }));
+    } catch (error) {
+      toast({
+        title: 'Error uploading image',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Fetch projects when modal opens
   useEffect(() => {
@@ -65,19 +116,6 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
     }
   }, [currentUser, isOpen]);
 
-  // Set form data when character changes
-  useEffect(() => {
-    if (character) {
-      setFormData({
-        name: character.name || '',
-        role: character.role || '',
-        description: character.description || '',
-        traits: character.traits || [],
-        projectId: character.projectId || '',
-      });
-    }
-  }, [character]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -105,7 +143,7 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
   };
 
   const handleSubmit = () => {
-    onSave({ ...formData, id: character.id });
+    onSave(formData);
     onClose();
   };
 
@@ -113,28 +151,71 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent bg="brand.dark.100">
-        <ModalHeader color="white">Edit Character</ModalHeader>
+        <ModalHeader color="white">
+          {character ? 'Edit Character' : 'Create Character'}
+        </ModalHeader>
         <ModalBody>
           <VStack spacing={4}>
             <FormControl>
+              <Center>
+                <Box position="relative">
+                  <Avatar
+                    size="2xl"
+                    src={formData.imageUrl}
+                    name={formData.name}
+                    bg="brand.primary"
+                    opacity={isUploading ? 0.5 : 1}
+                  />
+                  <IconButton
+                    icon={<FiCamera />}
+                    onClick={() => fileInputRef.current?.click()}
+                    position="absolute"
+                    bottom="0"
+                    right="0"
+                    rounded="full"
+                    bg="brand.primary"
+                    color="white"
+                    _hover={{
+                      bg: 'brand.secondary',
+                    }}
+                  />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    display="none"
+                    onChange={handleImageUpload}
+                  />
+                </Box>
+              </Center>
+            </FormControl>
+
+            <FormControl isRequired>
               <FormLabel color="brand.text.secondary">Name</FormLabel>
               <Input
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
+                placeholder="Character name"
               />
             </FormControl>
 
-            <FormControl>
+            <FormControl isRequired>
+              <FormLabel color="brand.text.secondary">Role</FormLabel>
+              <Input
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                placeholder="Character role"
+              />
+            </FormControl>
+
+            <FormControl isRequired>
               <FormLabel color="brand.text.secondary">Project</FormLabel>
               <Select
                 name="projectId"
                 value={formData.projectId}
                 onChange={handleChange}
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
                 placeholder="Select project"
               >
                 {projects.map(project => (
@@ -146,13 +227,12 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
             </FormControl>
 
             <FormControl>
-              <FormLabel color="brand.text.secondary">Role</FormLabel>
-              <Input
-                name="role"
-                value={formData.role}
+              <FormLabel color="brand.text.secondary">Description</FormLabel>
+              <Textarea
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
+                placeholder="Character description"
               />
             </FormControl>
 
@@ -162,9 +242,7 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
                 <Input
                   value={traitInput}
                   onChange={(e) => setTraitInput(e.target.value)}
-                  placeholder="Add a trait..."
-                  bg="brand.dark.200"
-                  borderColor="brand.dark.300"
+                  placeholder="Add trait"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleAddTrait(e);
@@ -176,39 +254,28 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
                     icon={<FiPlus />}
                     size="sm"
                     onClick={handleAddTrait}
-                    variant="ghost"
+                    aria-label="Add trait"
                   />
                 </InputRightElement>
               </InputGroup>
-              <HStack mt={2} spacing={2} wrap="wrap">
-                {formData.traits.map((trait, index) => (
-                  <Tag
-                    key={index}
-                    size="md"
-                    borderRadius="full"
-                    variant="subtle"
-                    colorScheme="purple"
-                  >
-                    <TagLabel>{trait}</TagLabel>
-                    <TagCloseButton
-                      onClick={() => handleRemoveTrait(trait)}
-                    />
-                  </Tag>
-                ))}
-              </HStack>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel color="brand.text.secondary">Description</FormLabel>
-              <Textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                bg="brand.dark.200"
-                borderColor="brand.dark.300"
-                resize="vertical"
-                minH="100px"
-              />
+              {formData.traits.length > 0 && (
+                <HStack mt={2} spacing={2} flexWrap="wrap">
+                  {formData.traits.map((trait, index) => (
+                    <Tag
+                      key={index}
+                      size="md"
+                      borderRadius="full"
+                      variant="subtle"
+                      colorScheme="purple"
+                    >
+                      <TagLabel>{trait}</TagLabel>
+                      <TagCloseButton
+                        onClick={() => handleRemoveTrait(trait)}
+                      />
+                    </Tag>
+                  ))}
+                </HStack>
+              )}
             </FormControl>
           </VStack>
         </ModalBody>
@@ -222,7 +289,7 @@ function EditCharacterModal({ isOpen, onClose, character, onSave }) {
             color="white"
             onClick={handleSubmit}
           >
-            Save Changes
+            {character ? 'Save Changes' : 'Create Character'}
           </Button>
         </ModalFooter>
       </ModalContent>

@@ -1,146 +1,213 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  VStack,
-  HStack,
+  Heading,
   Text,
-  Avatar,
+  HStack,
+  Tag,
   IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Badge,
-  Tooltip,
+  useToast,
+  Flex,
+  Avatar,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Button,
 } from '@chakra-ui/react';
-import { FiMoreVertical, FiEdit2, FiTrash2, FiBook } from 'react-icons/fi';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
-const CharacterCard = ({ character, onEdit, onDelete }) => {
-  const [projectName, setProjectName] = useState('');
+function CharacterCard({ character, onEdit, onDelete }) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [projectTitle, setProjectTitle] = useState('');
+  const cancelRef = React.useRef();
+  const toast = useToast();
 
-  // Fetch project name when component mounts
   useEffect(() => {
-    const fetchProjectName = async () => {
+    const fetchProjectTitle = async () => {
       if (!character.projectId) return;
-      
       try {
         const projectDoc = await getDoc(doc(db, 'projects', character.projectId));
         if (projectDoc.exists()) {
-          setProjectName(projectDoc.data().title);
+          setProjectTitle(projectDoc.data().title);
         }
       } catch (error) {
         console.error('Error fetching project:', error);
       }
     };
 
-    fetchProjectName();
+    fetchProjectTitle();
   }, [character.projectId]);
 
+  const handleDelete = async () => {
+    try {
+      await onDelete(character.id);
+      setIsDeleteOpen(false);
+    } catch (error) {
+      toast({
+        title: 'Error deleting character',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+      });
+    }
+  };
+
   return (
-    <Box
-      bg="brand.dark.100"
-      p={4}
-      borderRadius="xl"
-      borderWidth="1px"
-      borderColor="brand.dark.300"
-      transition="all 0.2s"
-      _hover={{
-        transform: 'translateY(-2px)',
-        shadow: 'lg',
-      }}
-    >
-      <HStack spacing={4} align="start">
-        <Avatar
-          size="lg"
-          name={character.name}
-          src={character.imageUrl}
-          bg="brand.primary"
-        />
-        <VStack align="start" flex={1} spacing={2}>
-          <HStack justify="space-between" w="100%">
-            <VStack align="start" spacing={1}>
-              <Text fontWeight="bold" color="white">
+    <>
+      <Box
+        bg="brand.dark.200"
+        borderRadius="xl"
+        overflow="hidden"
+        position="relative"
+        transition="all 0.2s"
+        _hover={{
+          transform: 'translateY(-2px)',
+          shadow: 'lg',
+        }}
+      >
+        {/* Header with Avatar and Actions */}
+        <Flex 
+          p={4} 
+          align="center" 
+          justify="space-between"
+          borderBottom="1px solid"
+          borderColor="whiteAlpha.100"
+        >
+          <Flex align="center" gap={3}>
+            <Avatar
+              size="md"
+              name={character.name}
+              src={character.imageUrl}
+              bg="brand.primary"
+            />
+            <Box>
+              <Heading size="md" color="white">
                 {character.name}
-              </Text>
-              <Text fontSize="sm" color="brand.text.secondary">
+              </Heading>
+              <Text color="brand.text.secondary" fontSize="sm">
                 {character.role}
               </Text>
-            </VStack>
-            <Menu>
-              <MenuButton
-                as={IconButton}
-                icon={<FiMoreVertical />}
-                variant="ghost"
-                size="sm"
-              />
-              <MenuList bg="brand.dark.200">
-                <MenuItem 
-                  icon={<FiEdit2 />} 
-                  onClick={() => onEdit(character)}
-                  _hover={{ bg: 'brand.dark.300' }}
-                >
-                  Edit
-                </MenuItem>
-                <MenuItem 
-                  icon={<FiTrash2 />} 
-                  onClick={() => onDelete(character.id)}
-                  color="red.400"
-                  _hover={{ bg: 'brand.dark.300' }}
-                >
-                  Delete
-                </MenuItem>
-              </MenuList>
-            </Menu>
+            </Box>
+          </Flex>
+          <HStack>
+            <IconButton
+              icon={<FiEdit2 />}
+              variant="ghost"
+              size="sm"
+              colorScheme="blue"
+              onClick={() => onEdit(character)}
+              aria-label="Edit character"
+              _hover={{
+                bg: 'rgba(66, 153, 225, 0.2)',
+              }}
+            />
+            <IconButton
+              icon={<FiTrash2 />}
+              variant="ghost"
+              size="sm"
+              colorScheme="red"
+              onClick={() => setIsDeleteOpen(true)}
+              aria-label="Delete character"
+              _hover={{
+                bg: 'rgba(245, 101, 101, 0.2)',
+              }}
+            />
           </HStack>
+        </Flex>
 
-          {/* Project Badge */}
-          {projectName && (
-            <Tooltip label="Linked Project" placement="top">
-              <Badge
-                display="flex"
-                alignItems="center"
-                gap={1}
-                colorScheme="blue"
-                variant="subtle"
-                px={2}
-                py={1}
-                borderRadius="full"
-              >
-                <FiBook size={12} />
-                {projectName}
-              </Badge>
-            </Tooltip>
-          )}
-          
-          {/* Character Traits */}
-          <HStack spacing={2} wrap="wrap">
-            {character.traits.map((trait, index) => (
-              <Badge
-                key={index}
-                colorScheme="purple"
-                variant="subtle"
-                px={2}
-                py={1}
-                borderRadius="full"
-              >
-                {trait}
-              </Badge>
-            ))}
-          </HStack>
-
-          <Text 
-            fontSize="sm" 
-            color="brand.text.secondary"
-            noOfLines={2}
+        {/* Content */}
+        <Box p={4}>
+          {/* Project Tag */}
+          <Tag
+            size="md"
+            colorScheme="blue"
+            mb={4}
+            px={3}
+            py={1}
+            borderRadius="full"
           >
-            {character.description}
-          </Text>
-        </VStack>
-      </HStack>
-    </Box>
+            {projectTitle || 'Unknown Project'}
+          </Tag>
+
+          {/* Description */}
+          {character.description && (
+            <Text
+              color="brand.text.secondary"
+              fontSize="sm"
+              mb={4}
+              noOfLines={2}
+            >
+              {character.description}
+            </Text>
+          )}
+
+          {/* Traits */}
+          {character.traits && character.traits.length > 0 && (
+            <Flex gap={2} flexWrap="wrap">
+              {character.traits.map((trait, index) => (
+                <Tag
+                  key={index}
+                  size="sm"
+                  variant="subtle"
+                  colorScheme="purple"
+                  borderRadius="full"
+                >
+                  {trait}
+                </Tag>
+              ))}
+            </Flex>
+          )}
+        </Box>
+      </Box>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsDeleteOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="brand.dark.200">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
+              Delete Character
+            </AlertDialogHeader>
+
+            <AlertDialogBody color="brand.text.secondary">
+              Are you sure you want to delete {character.name}? This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button
+                ref={cancelRef}
+                onClick={() => setIsDeleteOpen(false)}
+                variant="ghost"
+                _hover={{
+                  bg: 'brand.dark.300',
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={handleDelete}
+                ml={3}
+                _hover={{
+                  bg: 'red.600',
+                }}
+              >
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
   );
-};
+}
 
 export default CharacterCard; 

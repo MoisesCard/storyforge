@@ -1,72 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
-  Grid,
+  Container,
   Heading,
   Button,
-  useDisclosure,
-  VStack,
-  Container,
-  Text,
-  useToast,
-  Spinner,
-  Tabs,
-  TabList,
-  TabPanels,
-  TabPanel,
-  Tab,
   HStack,
+  Flex,
+  useDisclosure,
+  useToast,
 } from '@chakra-ui/react';
-import { FiPlus } from 'react-icons/fi';
-import CharacterCard from '../components/characters/CharacterCard';
-import NewCharacterModal from '../components/characters/NewCharacterModal';
+import { motion } from 'framer-motion';
+import CharacterList from '../components/characters/CharacterList';
 import RelationshipView from '../components/characters/RelationshipView';
-import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import NewCharacterModal from '../components/characters/NewCharacterModal';
+import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import EditCharacterModal from '../components/characters/EditCharacterModal';
 
 function Characters() {
-  const { currentUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('list');
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isNewOpen, onOpen: onNewOpen, onClose: onNewClose } = useDisclosure();
-  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
-  const [characters, setCharacters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
   const toast = useToast();
-  const [editingCharacter, setEditingCharacter] = useState(null);
 
-  // Fetch characters from Firestore
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const q = query(
-      collection(db, 'characters'),
-      where('userId', '==', currentUser.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const charactersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setCharacters(charactersData);
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching characters:', error);
-      toast({
-        title: 'Error fetching characters',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-      });
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [currentUser, toast]);
-
-  // Create character in Firestore
   const handleCreateCharacter = async (characterData) => {
     try {
       await addDoc(collection(db, 'characters'), {
@@ -75,12 +31,13 @@ function Characters() {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      
+
       toast({
         title: 'Character created',
         status: 'success',
         duration: 3000,
       });
+      
       onClose();
     } catch (error) {
       console.error('Error creating character:', error);
@@ -93,141 +50,106 @@ function Characters() {
     }
   };
 
-  // Delete character from Firestore
-  const handleDeleteCharacter = async (characterId) => {
-    try {
-      await deleteDoc(doc(db, 'characters', characterId));
-      toast({
-        title: 'Character deleted',
-        status: 'success',
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error('Error deleting character:', error);
-      toast({
-        title: 'Error deleting character',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-      });
-    }
-  };
-
-  // Add edit handler
-  const handleEditCharacter = async (character) => {
-    setEditingCharacter(character);
-    onEditOpen();
-  };
-
-  // Add save handler
-  const handleSaveCharacter = async (updatedCharacter) => {
-    try {
-      const characterRef = doc(db, 'characters', updatedCharacter.id);
-      await updateDoc(characterRef, {
-        ...updatedCharacter,
-        updatedAt: new Date(),
-      });
-      
-      toast({
-        title: 'Character updated',
-        status: 'success',
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error('Error updating character:', error);
-      toast({
-        title: 'Error updating character',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-      });
-    }
-  };
-
-  if (loading) {
-    return (
-      <Container maxW="container.xl" py={8}>
-        <VStack spacing={8} align="center" justify="center" minH="50vh">
-          <Spinner size="xl" color="brand.primary" />
-          <Text color="brand.text.secondary">Loading characters...</Text>
-        </VStack>
-      </Container>
-    );
-  }
-
   return (
     <Container maxW="container.xl" py={8}>
-      <VStack spacing={8} align="stretch">
-        <HStack justify="space-between">
-          <Heading
-            size="xl"
-            bgGradient="linear(to-r, brand.primary, brand.secondary)"
-            bgClip="text"
-          >
-            Characters
-          </Heading>
-          <Button
-            leftIcon={<FiPlus />}
-            onClick={onNewOpen}
-            bg="linear-gradient(135deg, brand.primary, brand.secondary)"
-            color="white"
-            _hover={{
-              transform: 'translateY(-2px)',
-              shadow: 'lg',
+      <Flex justify="space-between" align="center" mb={8}>
+        <Heading
+          size="xl"
+          bgGradient="linear(to-r, brand.primary, brand.secondary)"
+          bgClip="text"
+        >
+          Characters
+        </Heading>
+        <Button
+          onClick={onOpen}
+          bg="linear-gradient(135deg, brand.primary, brand.secondary)"
+          color="white"
+          _hover={{
+            transform: 'translateY(-2px)',
+            shadow: 'lg',
+          }}
+          transition="all 0.2s"
+        >
+          + New Character
+        </Button>
+      </Flex>
+
+      <Box position="relative" mb={8}>
+        <Box position="relative" width="fit-content">
+          <HStack spacing={0} position="relative">
+            <Button
+              variant="unstyled"
+              px={4}
+              py={4}
+              width="160px"
+              position="relative"
+              color={activeTab === 'list' ? 'white' : 'brand.text.secondary'}
+              onClick={() => setActiveTab('list')}
+              zIndex={1}
+              fontWeight="medium"
+              fontSize="lg"
+              transition="color 0.2s"
+              textAlign="center"
+              height="60px"
+            >
+              Character List
+            </Button>
+            <Button
+              variant="unstyled"
+              px={4}
+              py={4}
+              width="160px"
+              position="relative"
+              color={activeTab === 'relationships' ? 'white' : 'brand.text.secondary'}
+              onClick={() => setActiveTab('relationships')}
+              zIndex={1}
+              fontWeight="medium"
+              fontSize="lg"
+              transition="color 0.2s"
+              textAlign="center"
+              height="60px"
+            >
+              Relationships
+            </Button>
+          </HStack>
+          <motion.div
+            initial={false}
+            animate={{
+              x: activeTab === 'list' ? 0 : '160px',
             }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            style={{
+              position: 'absolute',
+              width: '160px',
+              height: '60px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(255, 77, 141, 0.1)',
+              border: '2px solid #FF4D8D',
+              top: 0,
+              left: 0,
+              zIndex: 0,
+            }}
+          />
+        </Box>
+
+        <Box mt={6}>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            style={{ width: '100%' }}
           >
-            New Character
-          </Button>
-        </HStack>
+            {activeTab === 'list' ? <CharacterList /> : <RelationshipView />}
+          </motion.div>
+        </Box>
+      </Box>
 
-        <Tabs variant="soft-rounded" colorScheme="pink">
-          <TabList>
-            <Tab>Character List</Tab>
-            <Tab>Relationships</Tab>
-          </TabList>
-
-          <TabPanels>
-            <TabPanel>
-              {loading ? (
-                <Text>Loading...</Text>
-              ) : characters.length === 0 ? (
-                <Text>No characters yet. Create one to get started!</Text>
-              ) : (
-                <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
-                  {characters.map(character => (
-                    <CharacterCard
-                      key={character.id}
-                      character={character}
-                      onDelete={handleDeleteCharacter}
-                      onEdit={handleEditCharacter}
-                    />
-                  ))}
-                </Grid>
-              )}
-            </TabPanel>
-
-            <TabPanel>
-              <RelationshipView 
-                onEdit={handleEditCharacter}
-                onDelete={handleDeleteCharacter}
-              />
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
-
-        <NewCharacterModal 
-          isOpen={isNewOpen} 
-          onClose={onNewClose}
-          onCreateCharacter={handleCreateCharacter}
-        />
-        
-        <EditCharacterModal
-          isOpen={isEditOpen}
-          onClose={onEditClose}
-          character={editingCharacter}
-          onSave={handleSaveCharacter}
-        />
-      </VStack>
+      <NewCharacterModal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        onCreateCharacter={handleCreateCharacter}
+      />
     </Container>
   );
 }
