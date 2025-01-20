@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Container,
   Heading,
@@ -11,13 +11,46 @@ import {
   TabPanel,
 } from '@chakra-ui/react';
 import { useParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import LocationsTab from '../components/world/LocationsTab';
+import TimelineTab from '../components/world/TimelineTab';
 
 function ProjectWorld() {
   const { projectId } = useParams();
   const [project, setProject] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+
+  const migrateLocationData = useCallback(async () => {
+    if (!projectId) return;
+    
+    try {
+      const locationsQuery = query(
+        collection(db, 'locations'),
+        where('projectId', '==', projectId)
+      );
+      
+      const locationsSnap = await getDocs(locationsQuery);
+      
+      const updates = locationsSnap.docs.map(async (docSnap) => {
+        const locationData = docSnap.data();
+        
+        // Only update if using old structure
+        if (locationData.linkedElements && !locationData.linkedCharacters) {
+          await updateDoc(doc(db, 'locations', docSnap.id), {
+            linkedCharacters: locationData.linkedElements || [],
+            linkedEvents: locationData.linkedEvents || [],
+            linkedElements: null // Remove old field
+          });
+        }
+      });
+      
+      await Promise.all(updates);
+      console.log('Migration completed');
+    } catch (error) {
+      console.error('Error migrating data:', error);
+    }
+  }, [projectId]);
 
   React.useEffect(() => {
     const fetchProject = async () => {
@@ -35,6 +68,10 @@ function ProjectWorld() {
 
     fetchProject();
   }, [projectId]);
+
+  React.useEffect(() => {
+    migrateLocationData();
+  }, [migrateLocationData]);
 
   if (loading) {
     return <Container maxW="container.xl" py={8}>Loading...</Container>;
@@ -63,27 +100,11 @@ function ProjectWorld() {
 
         <TabPanels>
           <TabPanel>
-            <Box
-              p={6}
-              bg="brand.dark.200"
-              borderRadius="xl"
-            >
-              <Text color="brand.text.secondary">
-                Locations coming soon...
-              </Text>
-            </Box>
+            <LocationsTab projectId={projectId} />
           </TabPanel>
 
           <TabPanel>
-            <Box
-              p={6}
-              bg="brand.dark.200"
-              borderRadius="xl"
-            >
-              <Text color="brand.text.secondary">
-                Timeline coming soon...
-              </Text>
-            </Box>
+            <TimelineTab projectId={projectId} />
           </TabPanel>
 
           <TabPanel>

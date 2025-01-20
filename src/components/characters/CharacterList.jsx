@@ -6,7 +6,12 @@ import {
   Spinner,
   Center,
   useDisclosure,
+  InputGroup,
+  InputLeftElement,
+  Input,
+  VStack,
 } from '@chakra-ui/react';
+import { FiSearch } from 'react-icons/fi';
 import { collection, query, where, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +21,8 @@ import EditCharacterModal from './EditCharacterModal';
 function CharacterList() {
   const { currentUser } = useAuth();
   const [characters, setCharacters] = useState([]);
+  const [filteredCharacters, setFilteredCharacters] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingCharacter, setEditingCharacter] = useState(null);
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
@@ -36,6 +43,7 @@ function CharacterList() {
         ...doc.data()
       }));
       setCharacters(charactersData);
+      setFilteredCharacters(charactersData); // Initialize filtered characters
       setLoading(false);
     }, (error) => {
       console.error('Error fetching characters:', error);
@@ -50,6 +58,20 @@ function CharacterList() {
 
     return () => unsubscribe();
   }, [currentUser, toast]);
+
+  // Filter characters based on search query
+  useEffect(() => {
+    const filtered = characters.filter(character => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        character.name?.toLowerCase().includes(searchLower) ||
+        character.role?.toLowerCase().includes(searchLower) ||
+        character.description?.toLowerCase().includes(searchLower) ||
+        character.traits?.some(trait => trait.toLowerCase().includes(searchLower))
+      );
+    });
+    setFilteredCharacters(filtered);
+  }, [searchQuery, characters]);
 
   // Delete character handler
   const handleDeleteCharacter = async (characterId) => {
@@ -106,28 +128,48 @@ function CharacterList() {
     );
   }
 
-  if (characters.length === 0) {
-    return (
-      <Center h="200px">
-        <Text color="brand.text.secondary">
-          No characters yet. Create one to get started!
-        </Text>
-      </Center>
-    );
-  }
-
   return (
-    <>
-      <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
-        {characters.map(character => (
-          <CharacterCard
-            key={character.id}
-            character={character}
-            onDelete={handleDeleteCharacter}
-            onEdit={handleEditCharacter}
-          />
-        ))}
-      </Grid>
+    <VStack spacing={6} width="100%">
+      <InputGroup>
+        <InputLeftElement pointerEvents="none">
+          <FiSearch color="gray.300" />
+        </InputLeftElement>
+        <Input
+          placeholder="Search characters by name, role, or traits..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          bg="brand.dark.100"
+          borderColor="brand.dark.300"
+          _hover={{
+            borderColor: 'brand.primary',
+          }}
+          _focus={{
+            borderColor: 'brand.primary',
+            boxShadow: '0 0 0 1px var(--chakra-colors-brand-primary)',
+          }}
+        />
+      </InputGroup>
+
+      {filteredCharacters.length === 0 ? (
+        <Center h="200px">
+          <Text color="brand.text.secondary">
+            {characters.length === 0
+              ? "No characters yet. Create one to get started!"
+              : "No characters found matching your search."}
+          </Text>
+        </Center>
+      ) : (
+        <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6} width="100%">
+          {filteredCharacters.map(character => (
+            <CharacterCard
+              key={character.id}
+              character={character}
+              onDelete={handleDeleteCharacter}
+              onEdit={handleEditCharacter}
+            />
+          ))}
+        </Grid>
+      )}
 
       <EditCharacterModal
         isOpen={isEditOpen}
@@ -135,7 +177,7 @@ function CharacterList() {
         character={editingCharacter}
         onSave={handleSaveCharacter}
       />
-    </>
+    </VStack>
   );
 }
 

@@ -1,29 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Heading,
-  Button,
-  VStack,
+  Grid,
   Text,
-  Icon,
-  Flex,
-  useToast,
+  VStack,
+  Spinner,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Center,
 } from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
+import { FiSearch } from 'react-icons/fi';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { FiMap, FiPlus } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import AnimatedTitle from '../components/common/AnimatedTitle';
 
 function WorldBuilder() {
-  const [projects, setProjects] = React.useState([]);
   const { currentUser } = useAuth();
+  const [projects, setProjects] = useState([]);
+  const [filteredProjects, setFilteredProjects] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const toast = useToast();
 
-  React.useEffect(() => {
+  // Fetch projects from Firebase
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
     const q = query(
       collection(db, 'projects'),
       where('userId', '==', currentUser.uid)
@@ -35,97 +44,134 @@ function WorldBuilder() {
         ...doc.data()
       }));
       setProjects(projectsData);
+      setFilteredProjects(projectsData);
+      setLoading(false);
     }, (error) => {
-      console.error("Error fetching projects:", error);
-      toast({
-        title: 'Error fetching projects',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-      });
+      console.error('Error fetching projects:', error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [currentUser, toast]);
+  }, [currentUser, navigate]);
+
+  // Filter projects based on search query
+  useEffect(() => {
+    const filtered = projects.filter(project => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        project.title?.toLowerCase().includes(searchLower) ||
+        project.description?.toLowerCase().includes(searchLower) ||
+        project.genre?.toLowerCase().includes(searchLower)
+      );
+    });
+    setFilteredProjects(filtered);
+  }, [searchQuery, projects]);
 
   const handleProjectClick = (projectId) => {
     navigate(`/world-builder/${projectId}`);
   };
 
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center h="200px">
+          <Spinner size="xl" color="brand.primary" />
+        </Center>
+      </Container>
+    );
+  }
+
   return (
     <Container maxW="container.xl" py={8}>
-      <Flex justify="space-between" align="center" mb={8}>
-        <AnimatedTitle mb={8}>World Builder</AnimatedTitle>
-        <Button
-          leftIcon={<FiPlus />}
-          bg="linear-gradient(135deg, brand.primary, brand.secondary)"
-          color="white"
-          _hover={{
-            transform: 'translateY(-2px)',
-            shadow: 'lg',
-          }}
-          transition="all 0.2s"
-        >
-          New World
-        </Button>
-      </Flex>
+      <VStack spacing={8} align="stretch">
+        <Box>
+          <AnimatedTitle mb={8}>World Builder</AnimatedTitle>
+        </Box>
 
-      <Box position="relative" mb={8}>
-        <VStack spacing={4} align="stretch">
-          {projects.map((project) => (
-            <Box
-              key={project.id}
-              bg="brand.dark.200"
-              borderRadius="xl"
-              overflow="hidden"
-              cursor="pointer"
-              onClick={() => handleProjectClick(project.id)}
-              transition="all 0.2s"
-              _hover={{
-                transform: 'translateY(-2px)',
-                shadow: 'lg',
-                '&::before': { opacity: 0.3 },
-              }}
-              position="relative"
-              _before={{
-                content: '""',
-                position: 'absolute',
-                top: '-2px',
-                left: '-2px',
-                right: '-2px',
-                bottom: '-2px',
-                bg: 'linear-gradient(45deg, brand.primary, brand.secondary)',
-                zIndex: 0,
-                borderRadius: 'xl',
-                opacity: 0,
-                transition: 'opacity 0.3s',
-              }}
-            >
-              <Flex
+        <InputGroup>
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="gray.300" />
+          </InputLeftElement>
+          <Input
+            placeholder="Search worlds by title, description, or genre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            bg="brand.dark.100"
+            borderColor="brand.dark.300"
+            _hover={{
+              borderColor: 'brand.primary',
+            }}
+            _focus={{
+              borderColor: 'brand.primary',
+              boxShadow: '0 0 0 1px var(--chakra-colors-brand-primary)',
+            }}
+          />
+        </InputGroup>
+
+        {filteredProjects.length === 0 ? (
+          <Box
+            p={8}
+            textAlign="center"
+            bg="brand.dark.100"
+            borderRadius="lg"
+            borderColor="brand.dark.300"
+            borderWidth="1px"
+          >
+            <Text color="brand.text.secondary">
+              {projects.length === 0
+                ? "No worlds yet. Create one to get started!"
+                : "No worlds found matching your search."}
+            </Text>
+          </Box>
+        ) : (
+          <Grid templateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={6}>
+            {filteredProjects.map((project) => (
+              <Box
+                key={project.id}
+                bg="brand.dark.100"
                 p={6}
-                align="center"
-                justify="space-between"
+                borderRadius="xl"
+                cursor="pointer"
+                onClick={() => handleProjectClick(project.id)}
                 position="relative"
-                zIndex={1}
+                overflow="hidden"
+                _before={{
+                  content: '""',
+                  position: 'absolute',
+                  top: '-2px',
+                  left: '-2px',
+                  right: '-2px',
+                  bottom: '-2px',
+                  bg: 'linear-gradient(45deg, brand.primary, brand.secondary)',
+                  zIndex: 0,
+                  borderRadius: 'xl',
+                  opacity: 0,
+                  transition: 'opacity 0.3s',
+                }}
+                _hover={{
+                  transform: 'translateY(-2px)',
+                  '&::before': { opacity: 0.3 },
+                }}
+                transition="all 0.2s"
               >
-                <Box>
-                  <Heading size="md" color="white" mb={2}>
+                <VStack spacing={2} align="start" position="relative" zIndex={1}>
+                  <Text fontSize="xl" fontWeight="bold" color="white">
                     {project.title}
-                  </Heading>
-                  <Text color="brand.text.secondary" fontSize="sm" noOfLines={2}>
-                    {project.description || 'No description'}
                   </Text>
-                </Box>
-                <Icon
-                  as={FiMap}
-                  boxSize={6}
-                  color="brand.primary"
-                />
-              </Flex>
-            </Box>
-          ))}
-        </VStack>
-      </Box>
+                  <Text color="brand.text.secondary" fontSize="sm">
+                    {project.genre}
+                  </Text>
+                  {project.description && (
+                    <Text color="brand.text.secondary" noOfLines={2}>
+                      {project.description}
+                    </Text>
+                  )}
+                </VStack>
+              </Box>
+            ))}
+          </Grid>
+        )}
+      </VStack>
     </Container>
   );
 }
