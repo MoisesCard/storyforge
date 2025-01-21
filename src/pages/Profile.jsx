@@ -9,40 +9,34 @@ import {
   Button,
   useDisclosure,
   SimpleGrid,
-  Icon,
   Spinner,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  HStack,
+  IconButton,
 } from '@chakra-ui/react';
-import { FiEdit2, FiBook, FiAward, FiUsers } from 'react-icons/fi';
+import { FiEdit2, FiTwitter, FiInstagram, FiFacebook } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import EditProfileModal from '../components/modals/EditProfileModal';
-
-function StatCard({ icon, label, value }) {
-  return (
-    <Box
-      bg="brand.dark.100"
-      p={4}
-      borderRadius="lg"
-      textAlign="center"
-    >
-      <Icon as={icon} boxSize={6} color="brand.primary" mb={2} />
-      <Text fontSize="2xl" fontWeight="bold" color="white">
-        {value}
-      </Text>
-      <Text color="brand.text.secondary" fontSize="sm">
-        {label}
-      </Text>
-    </Box>
-  );
-}
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 function Profile() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [stats, setStats] = useState({
+    totalProjects: 0,
+    totalCharacters: 0,
+    totalWords: 0,
+    totalLocations: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (currentUser) {
@@ -87,6 +81,76 @@ function Profile() {
 
       return () => unsubscribe();
     }
+  }, [currentUser]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch projects count
+        const projectsQuery = query(
+          collection(db, 'projects'),
+          where('userId', '==', currentUser.uid)
+        );
+        const projectsSnap = await getDocs(projectsQuery);
+        const projectsCount = projectsSnap.docs.length;
+        
+        // Calculate total words from all projects
+        let totalWords = 0;
+        projectsSnap.docs.forEach(doc => {
+          const content = doc.data().content;
+          if (content && Array.isArray(content)) {
+            // For Slate content structure
+            content.forEach(node => {
+              if (node.children) {
+                node.children.forEach(child => {
+                  if (child.text) {
+                    totalWords += child.text.trim().split(/\s+/).filter(Boolean).length;
+                  }
+                });
+              }
+            });
+          }
+        });
+
+        // Fetch characters count
+        const charactersQuery = query(
+          collection(db, 'characters'),
+          where('userId', '==', currentUser.uid)
+        );
+        const charactersSnap = await getDocs(charactersQuery);
+        const charactersCount = charactersSnap.docs.length;
+
+        // Fetch locations count by aggregating across all projects
+        let locationsCount = 0;
+        for (const projectDoc of projectsSnap.docs) {
+          const locationsQuery = query(
+            collection(db, 'locations'),
+            where('projectId', '==', projectDoc.id)
+          );
+          const locationsSnap = await getDocs(locationsQuery);
+          locationsCount += locationsSnap.docs.length;
+        }
+
+        // Update stats state
+        setStats({
+          totalProjects: projectsCount,
+          totalCharacters: charactersCount,
+          totalWords: totalWords,
+          totalLocations: locationsCount
+        });
+
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
   }, [currentUser]);
 
   const handleLogout = async () => {
@@ -180,7 +244,49 @@ function Profile() {
                       📍 {profileData.location}
                     </Text>
                   )}
+                  
+                  {/* Social Media Icons */}
+                  <HStack spacing={4} pt={2}>
+                    {profileData.socialLinks?.twitter && (
+                      <IconButton
+                        as="a"
+                        href={profileData.socialLinks.twitter}
+                        target="_blank"
+                        icon={<FiTwitter />}
+                        aria-label="Twitter"
+                        variant="ghost"
+                        color="brand.text.secondary"
+                        _hover={{ color: "white", bg: "brand.dark.300" }}
+                      />
+                    )}
+                    {profileData.socialLinks?.instagram && (
+                      <IconButton
+                        as="a"
+                        href={profileData.socialLinks.instagram}
+                        target="_blank"
+                        icon={<FiInstagram />}
+                        aria-label="Instagram"
+                        variant="ghost"
+                        color="brand.text.secondary"
+                        _hover={{ color: "white", bg: "brand.dark.300" }}
+                      />
+                    )}
+                    {profileData.socialLinks?.facebook && (
+                      <IconButton
+                        as="a"
+                        href={profileData.socialLinks.facebook}
+                        target="_blank"
+                        icon={<FiFacebook />}
+                        aria-label="Facebook"
+                        variant="ghost"
+                        color="brand.text.secondary"
+                        _hover={{ color: "white", bg: "brand.dark.300" }}
+                      />
+                    )}
+                  </HStack>
                 </VStack>
+                
+                {/* Edit Profile Button */}
                 <Button
                   leftIcon={<FiEdit2 />}
                   variant="solid"
@@ -204,60 +310,47 @@ function Profile() {
           </Box>
 
           {/* Stats */}
-          <SimpleGrid columns={[2, 2, 4]} spacing={6}>
-            <StatCard
-              icon={FiBook}
-              label="Projects"
-              value={profileData.stats.totalProjects}
-            />
-            <StatCard
-              icon={FiUsers}
-              label="Followers"
-              value={profileData.stats.followers}
-            />
-            <StatCard
-              icon={FiUsers}
-              label="Following"
-              value={profileData.stats.following}
-            />
-            <StatCard
-              icon={FiAward}
-              label="Words Written"
-              value={profileData.stats.wordCount.toLocaleString()}
-            />
-          </SimpleGrid>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+            <Box bg="brand.dark.100" p={6} borderRadius="xl">
+              <Stat>
+                <StatLabel color="brand.text.secondary">Total Projects</StatLabel>
+                <StatNumber fontSize="4xl" fontWeight="bold">
+                  {loading ? '-' : stats.totalProjects}
+                </StatNumber>
+                <StatHelpText>Active writing projects</StatHelpText>
+              </Stat>
+            </Box>
 
-          <Box
-            bg="brand.dark.100"
-            p={6}
-            borderRadius="xl"
-          >
-            <VStack spacing={4} align="stretch">
-              <Heading size="md" color="white">
-                Social Links
-              </Heading>
-              <SimpleGrid columns={[1, 2, 3]} spacing={4}>
-                {Object.entries(profileData.socialLinks).map(([platform, url]) => (
-                  <Box
-                    key={platform}
-                    p={4}
-                    bg="brand.dark.200"
-                    borderRadius="md"
-                    display="flex"
-                    alignItems="center"
-                    gap={2}
-                  >
-                    <Text color="brand.text.secondary" textTransform="capitalize">
-                      {platform}:
-                    </Text>
-                    <Text color="white" isTruncated>
-                      {url || 'Not set'}
-                    </Text>
-                  </Box>
-                ))}
-              </SimpleGrid>
-            </VStack>
-          </Box>
+            <Box bg="brand.dark.100" p={6} borderRadius="xl">
+              <Stat>
+                <StatLabel color="brand.text.secondary">Characters Created</StatLabel>
+                <StatNumber fontSize="4xl" fontWeight="bold">
+                  {loading ? '-' : stats.totalCharacters}
+                </StatNumber>
+                <StatHelpText>Across all projects</StatHelpText>
+              </Stat>
+            </Box>
+
+            <Box bg="brand.dark.100" p={6} borderRadius="xl">
+              <Stat>
+                <StatLabel color="brand.text.secondary">Words Written</StatLabel>
+                <StatNumber fontSize="4xl" fontWeight="bold">
+                  {loading ? '-' : stats.totalWords.toLocaleString()}
+                </StatNumber>
+                <StatHelpText>Total word count</StatHelpText>
+              </Stat>
+            </Box>
+
+            <Box bg="brand.dark.100" p={6} borderRadius="xl">
+              <Stat>
+                <StatLabel color="brand.text.secondary">Locations Created</StatLabel>
+                <StatNumber fontSize="4xl" fontWeight="bold">
+                  {loading ? '-' : stats.totalLocations}
+                </StatNumber>
+                <StatHelpText>World building progress</StatHelpText>
+              </Stat>
+            </Box>
+          </SimpleGrid>
 
           <Box
             bg="brand.dark.100"

@@ -63,7 +63,7 @@ function Sidebar() {
         <SidebarItem 
           icon={FiHome} 
           label="Home" 
-          to="/" 
+          to="/dashboard" 
         />
         <SidebarItem 
           icon={FiBook} 

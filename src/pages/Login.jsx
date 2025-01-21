@@ -41,7 +41,7 @@ function Login() {
 
     try {
       await login(email, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (error) {
       setError(
         error.code === 'auth/invalid-credential' 

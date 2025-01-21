@@ -1,16 +1,11 @@
 import React from 'react';
 import { 
-  HStack, 
   IconButton, 
   Select, 
-  NumberInput,
-  NumberInputField,
   Divider,
-  Tooltip,
   Text,
   Icon,
   Flex,
-  Spacer,
 } from '@chakra-ui/react';
 import { 
   FiBold, FiItalic, FiUnderline, 
@@ -20,6 +15,24 @@ import {
 import { GoQuote } from 'react-icons/go';
 import { useSlate } from 'slate-react';
 import { CustomEditor } from './EditorUtils';
+
+const ToolbarButton = ({ icon, label, isActive, ...props }) => (
+  <IconButton
+    icon={icon}
+    aria-label={label}
+    variant="ghost"
+    size="sm"
+    color="gray.100"
+    bg={isActive ? "whiteAlpha.200" : "transparent"}
+    _hover={{
+      bg: "whiteAlpha.300"
+    }}
+    _active={{
+      bg: "whiteAlpha.400"
+    }}
+    {...props}
+  />
+);
 
 const EditorToolbar = ({ saveStatus, wordCount, charCount }) => {
   const editor = useSlate();
@@ -31,221 +44,194 @@ const EditorToolbar = ({ saveStatus, wordCount, charCount }) => {
     CustomEditor.toggleFontFamily(editor, event.target.value);
   };
 
-  const handleFontSizeChange = (value) => {
-    if (!value) return;
-    console.log('Font size change triggered:', value);
-    CustomEditor.toggleFontSize(editor, `${value}pt`);
+  const handleFontSizeChange = (event) => {
+    if (!event.target.value) return;
+    const size = event.target.value;
+    CustomEditor.toggleFontSize(editor, size);
   };
 
   return (
     <Flex 
-      bg="brand.dark.100" 
       p={2} 
-      borderBottom="1px solid" 
-      borderColor="brand.dark.300"
+      bg="brand.dark.200" 
+      borderRadius="md"
       align="center"
+      mb={2}
+      gap={2}
     >
-      {/* Save Status - Moved to the left */}
-      <Flex align="center" color="brand.text.secondary" minW="80px">
-        {saveStatus === 'saving' && (
-          <Text fontSize="sm">Saving...</Text>
-        )}
-        {saveStatus === 'saved' && (
-          <Flex align="center" gap={1}>
-            <Text fontSize="sm">Saved</Text>
-            <Icon as={FiCheck} color="green.400" />
-          </Flex>
-        )}
-      </Flex>
-
-      <Divider orientation="vertical" h="24px" />
-
-      {/* Font Family */}
+      {/* Font family select with more options */}
       <Select 
         size="sm" 
-        w="120px" 
+        maxW="120px"
+        color="gray.100"
+        bg="whiteAlpha.100"
+        borderColor="whiteAlpha.200"
+        _hover={{
+          borderColor: "whiteAlpha.300"
+        }}
         value={format.fontFamily || 'Arial'}
         onChange={handleFontFamilyChange}
-        color="brand.text.primary"
       >
         <option value="Arial">Arial</option>
         <option value="Times New Roman">Times New Roman</option>
         <option value="Calibri">Calibri</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Helvetica">Helvetica</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Tahoma">Tahoma</option>
+        <option value="Trebuchet MS">Trebuchet MS</option>
+        <option value="Garamond">Garamond</option>
+        <option value="Courier New">Courier New</option>
       </Select>
 
-      {/* Font Size */}
-      <NumberInput 
-        size="sm" 
-        w="70px" 
-        value={parseInt(format.fontSize) || 11}
-        min={6} 
-        max={96}
+      {/* Font size select */}
+      <Select
+        size="sm"
+        w="80px"
+        color="gray.100"
+        bg="whiteAlpha.100"
+        borderColor="whiteAlpha.200"
+        _hover={{
+          borderColor: "whiteAlpha.300"
+        }}
+        value={format.fontSize?.replace('pt', '') || '11'}
         onChange={handleFontSizeChange}
       >
-        <NumberInputField color="brand.text.primary" />
-      </NumberInput>
+        <option value="6">6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+        <option value="14">14</option>
+        <option value="16">16</option>
+        <option value="18">18</option>
+        <option value="24">24</option>
+        <option value="30">30</option>
+        <option value="36">36</option>
+        <option value="48">48</option>
+        <option value="60">60</option>
+        <option value="72">72</option>
+      </Select>
 
-      <Divider orientation="vertical" h="24px" />
+      <Divider orientation="vertical" h="20px" borderColor="whiteAlpha.200" />
 
-      {/* Text Formatting */}
-      <Tooltip label="Bold (⌘B)">
-        <IconButton 
-          icon={<FiBold />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Bold"
-          isActive={CustomEditor.isMarkActive(editor, 'bold')}
-          onClick={() => CustomEditor.toggleMark(editor, 'bold')}
-        />
-      </Tooltip>
-      <Tooltip label="Italic (⌘I)">
-        <IconButton 
-          icon={<FiItalic />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Italic"
-          isActive={CustomEditor.isMarkActive(editor, 'italic')}
-          onClick={() => CustomEditor.toggleMark(editor, 'italic')}
-        />
-      </Tooltip>
-      <Tooltip label="Underline (⌘U)">
-        <IconButton 
-          icon={<FiUnderline />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Underline"
-          isActive={CustomEditor.isMarkActive(editor, 'underline')}
-          onClick={() => CustomEditor.toggleMark(editor, 'underline')}
-        />
-      </Tooltip>
+      {/* Formatting buttons */}
+      <ToolbarButton
+        icon={<FiBold />}
+        label="Bold"
+        isActive={CustomEditor.isMarkActive(editor, 'bold')}
+        onClick={() => CustomEditor.toggleMark(editor, 'bold')}
+      />
+      <ToolbarButton
+        icon={<FiItalic />}
+        label="Italic"
+        isActive={CustomEditor.isMarkActive(editor, 'italic')}
+        onClick={() => CustomEditor.toggleMark(editor, 'italic')}
+      />
+      <ToolbarButton
+        icon={<FiUnderline />}
+        label="Underline"
+        isActive={CustomEditor.isMarkActive(editor, 'underline')}
+        onClick={() => CustomEditor.toggleMark(editor, 'underline')}
+      />
 
       {/* Header buttons */}
-      <Tooltip label="Heading 1">
-        <IconButton 
-          icon={
-            <Text fontWeight="bold" fontSize="sm">H1</Text>
-          }
-          variant="ghost" 
-          size="sm" 
-          aria-label="Heading 1"
-          isActive={CustomEditor.isHeadingActive(editor, 1)}
-          onClick={() => CustomEditor.toggleHeading(editor, 1)}
-          color={CustomEditor.isHeadingActive(editor, 1) ? "white" : "inherit"}
-          bg={CustomEditor.isHeadingActive(editor, 1) ? "brand.primary" : "transparent"}
-          _hover={{
-            bg: CustomEditor.isHeadingActive(editor, 1) ? "brand.primary" : "brand.dark.300",
-          }}
-        />
-      </Tooltip>
+      <ToolbarButton
+        icon={
+          <Text fontWeight="bold" fontSize="sm">H1</Text>
+        }
+        label="Heading 1"
+        isActive={CustomEditor.isHeadingActive(editor, 1)}
+        onClick={() => CustomEditor.toggleHeading(editor, 1)}
+        color={CustomEditor.isHeadingActive(editor, 1) ? "white" : "inherit"}
+        bg={CustomEditor.isHeadingActive(editor, 1) ? "brand.primary" : "transparent"}
+        _hover={{
+          bg: CustomEditor.isHeadingActive(editor, 1) ? "brand.primary" : "brand.dark.300",
+        }}
+      />
 
-      <Tooltip label="Heading 2">
-        <IconButton 
-          icon={
-            <Text fontWeight="bold" fontSize="sm">H2</Text>
-          }
-          variant="ghost" 
-          size="sm" 
-          aria-label="Heading 2"
-          isActive={CustomEditor.isHeadingActive(editor, 2)}
-          onClick={() => CustomEditor.toggleHeading(editor, 2)}
-          color={CustomEditor.isHeadingActive(editor, 2) ? "white" : "inherit"}
-          bg={CustomEditor.isHeadingActive(editor, 2) ? "brand.primary" : "transparent"}
-          _hover={{
-            bg: CustomEditor.isHeadingActive(editor, 2) ? "brand.primary" : "brand.dark.300",
-          }}
-        />
-      </Tooltip>
+      <ToolbarButton
+        icon={
+          <Text fontWeight="bold" fontSize="sm">H2</Text>
+        }
+        label="Heading 2"
+        isActive={CustomEditor.isHeadingActive(editor, 2)}
+        onClick={() => CustomEditor.toggleHeading(editor, 2)}
+        color={CustomEditor.isHeadingActive(editor, 2) ? "white" : "inherit"}
+        bg={CustomEditor.isHeadingActive(editor, 2) ? "brand.primary" : "transparent"}
+        _hover={{
+          bg: CustomEditor.isHeadingActive(editor, 2) ? "brand.primary" : "brand.dark.300",
+        }}
+      />
 
-      <Divider orientation="vertical" h="24px" />
+      <Divider orientation="vertical" h="20px" borderColor="whiteAlpha.200" />
 
       {/* Alignment */}
-      <Tooltip label="Align left">
-        <IconButton 
-          icon={<FiAlignLeft />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Align left"
-          isActive={CustomEditor.isAlignActive(editor, 'left')}
-          onClick={() => CustomEditor.toggleAlign(editor, 'left')}
-        />
-      </Tooltip>
-      <Tooltip label="Align center">
-        <IconButton 
-          icon={<FiAlignCenter />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Align center"
-          isActive={CustomEditor.isAlignActive(editor, 'center')}
-          onClick={() => CustomEditor.toggleAlign(editor, 'center')}
-        />
-      </Tooltip>
-      <Tooltip label="Align right">
-        <IconButton 
-          icon={<FiAlignRight />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Align right"
-          isActive={CustomEditor.isAlignActive(editor, 'right')}
-          onClick={() => CustomEditor.toggleAlign(editor, 'right')}
-        />
-      </Tooltip>
-      <Tooltip label="Justify">
-        <IconButton 
-          icon={<FiAlignJustify />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Justify"
-          isActive={CustomEditor.isAlignActive(editor, 'justify')}
-          onClick={() => CustomEditor.toggleAlign(editor, 'justify')}
-        />
-      </Tooltip>
+      <ToolbarButton
+        icon={<FiAlignLeft />}
+        label="Align left"
+        isActive={CustomEditor.isAlignActive(editor, 'left')}
+        onClick={() => CustomEditor.toggleAlign(editor, 'left')}
+      />
+      <ToolbarButton
+        icon={<FiAlignCenter />}
+        label="Align center"
+        isActive={CustomEditor.isAlignActive(editor, 'center')}
+        onClick={() => CustomEditor.toggleAlign(editor, 'center')}
+      />
+      <ToolbarButton
+        icon={<FiAlignRight />}
+        label="Align right"
+        isActive={CustomEditor.isAlignActive(editor, 'right')}
+        onClick={() => CustomEditor.toggleAlign(editor, 'right')}
+      />
+      <ToolbarButton
+        icon={<FiAlignJustify />}
+        label="Justify"
+        isActive={CustomEditor.isAlignActive(editor, 'justify')}
+        onClick={() => CustomEditor.toggleAlign(editor, 'justify')}
+      />
 
-      <Divider orientation="vertical" h="24px" />
+      <Divider orientation="vertical" h="20px" borderColor="whiteAlpha.200" />
 
       {/* Lists */}
-      <Tooltip label="Bullet list">
-        <IconButton 
-          icon={<FiList />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Bullet list"
-          isActive={CustomEditor.isBulletActive(editor)}
-          onClick={() => CustomEditor.toggleBulletList(editor)}
-        />
-      </Tooltip>
+      <ToolbarButton
+        icon={<FiList />}
+        label="Bullet list"
+        isActive={CustomEditor.isBulletActive(editor)}
+        onClick={() => CustomEditor.toggleBulletList(editor)}
+      />
 
       {/* Add Block Quote */}
-      <Tooltip label="Block quote">
-        <IconButton 
-          icon={<GoQuote />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Block quote"
-          isActive={CustomEditor.isBlockQuoteActive(editor)}
-          onClick={() => CustomEditor.toggleBlockQuote(editor)}
-        />
-      </Tooltip>
+      <ToolbarButton
+        icon={<GoQuote />}
+        label="Block quote"
+        isActive={CustomEditor.isBlockQuoteActive(editor)}
+        onClick={() => CustomEditor.toggleBlockQuote(editor)}
+      />
 
       {/* Link */}
-      <Tooltip label="Insert link">
-        <IconButton 
-          icon={<FiLink />} 
-          variant="ghost" 
-          size="sm" 
-          aria-label="Insert link"
-        />
-      </Tooltip>
+      <ToolbarButton
+        icon={<FiLink />}
+        label="Insert link"
+      />
 
-      <Spacer />
-      
-      <HStack spacing={4} ml={4} mr={4}>
-        <Text color="brand.text.secondary" fontSize="sm">
-          Words: {wordCount}
-        </Text>
-        <Text color="brand.text.secondary" fontSize="sm">
-          Characters: {charCount}
-        </Text>
-      </HStack>
+      {/* Status text */}
+      <Text ml="auto" fontSize="sm" color="gray.300" display="flex" alignItems="center" gap={1}>
+        {saveStatus === 'saving' && 'Saving...'}
+        {saveStatus === 'saved' && (
+          <>
+            Saved
+            <Icon as={FiCheck} color="green.400" />
+          </>
+        )}
+        {saveStatus === 'error' && 'Error saving'}
+      </Text>
+
+      {/* Word/character count */}
+      <Text fontSize="sm" color="gray.300">
+        {`${wordCount} words, ${charCount} characters`}
+      </Text>
     </Flex>
   );
 };

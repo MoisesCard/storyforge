@@ -66,7 +66,12 @@ export const CustomEditor = {
   },
 
   toggleFontSize(editor, fontSize) {
-    Editor.addMark(editor, 'fontSize', fontSize);
+    const marks = Editor.marks(editor);
+    if (marks?.fontSize === fontSize) {
+      Editor.removeMark(editor, 'fontSize');
+    } else {
+      Editor.addMark(editor, 'fontSize', `${fontSize}pt`);
+    }
   },
 
   // Get current formatting

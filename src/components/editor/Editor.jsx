@@ -1,9 +1,8 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { createEditor, Editor as SlateEditor, Transforms, Element } from 'slate';
+import { createEditor, Editor as SlateEditor, Transforms } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
 import { Box, Flex } from '@chakra-ui/react';
-import EditorMenuBar from './EditorMenuBar';
 import EditorToolbar from './EditorToolbar';
 import { CustomEditor } from './EditorUtils';
 import './Editor.css';
@@ -23,23 +22,29 @@ const withFormatting = editor => {
 
   editor.normalizeNode = entry => {
     const [node, path] = entry;
-
+    
+    // Handle empty document
+    if (path.length === 0 && node.children.length === 0) {
+      editor.insertNode({
+        type: 'paragraph',
+        children: [{ text: '' }],
+        align: 'left',
+        fontFamily: 'Arial',
+        fontSize: '11pt',
+      });
+      return;
+    }
+    
     // Ensure blocks have required properties
-    if (Element.isElement(node) && !editor.isInline(node)) {
-      if (!node.type) {
-        Transforms.setNodes(editor, { type: 'paragraph' }, { at: path });
-        return;
-      }
-      if (!node.align) {
-        Transforms.setNodes(editor, { align: 'left' }, { at: path });
-        return;
-      }
-      if (!node.fontFamily) {
-        Transforms.setNodes(editor, { fontFamily: 'Arial' }, { at: path });
-        return;
-      }
-      if (!node.fontSize) {
-        Transforms.setNodes(editor, { fontSize: '11pt' }, { at: path });
+    if (SlateEditor.isBlock(editor, node)) {
+      const props = {};
+      if (!node.type) props.type = 'paragraph';
+      if (!node.align) props.align = 'left';
+      if (!node.fontFamily) props.fontFamily = 'Arial';
+      if (!node.fontSize) props.fontSize = '11pt';
+      
+      if (Object.keys(props).length > 0) {
+        Transforms.setNodes(editor, props, { at: path });
         return;
       }
     }
@@ -51,44 +56,9 @@ const withFormatting = editor => {
   return editor;
 };
 
-const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus, title }) => {
+const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus }) => {
   const editor = useMemo(() => {
-    const e = withFormatting(withHistory(withReact(createEditor())));
-    
-    // Normalize nodes to ensure they have required properties
-    const { normalizeNode } = e;
-    e.normalizeNode = entry => {
-      const [node, path] = entry;
-      
-      if (path.length === 0 && node.children.length === 0) {
-        e.insertNode({
-          type: 'paragraph',
-          children: [{ text: '' }],
-          align: 'left',
-          fontFamily: 'Arial',
-          fontSize: '11pt',
-        });
-        return;
-      }
-      
-      // Ensure all blocks have required properties
-      if (SlateEditor.isBlock(e, node)) {
-        const props = {};
-        if (!node.type) props.type = 'paragraph';
-        if (!node.align) props.align = 'left';
-        if (!node.fontFamily) props.fontFamily = 'Arial';
-        if (!node.fontSize) props.fontSize = '11pt';
-        
-        if (Object.keys(props).length > 0) {
-          Transforms.setNodes(e, props, { at: path });
-          return;
-        }
-      }
-      
-      normalizeNode(entry);
-    };
-    
-    return e;
+    return withFormatting(withHistory(withReact(createEditor())));
   }, []);
 
   const renderElement = useCallback(props => {
@@ -275,53 +245,66 @@ const Editor = ({ value = DEFAULT_VALUE, onChange, projectId, saveStatus, title 
   }, [value]);
 
   return (
-    <Flex direction="column" h="100%" bg="brand.dark.100">
-      <EditorMenuBar title={title} />
-      <Slate 
-        editor={editor} 
-        initialValue={value}
-        value={value}
-        onChange={onChange}
-      >
-        <EditorToolbar 
-          saveStatus={saveStatus} 
-          wordCount={wordCount}
-          charCount={charCount}
-        />
-        <Box 
-          flex="1"
-          bg="brand.dark.100"
-          overflowY="auto"
-          pt={4}
+    <Box p={4} bg="#1E2A3B">
+      <Flex direction="column" h="100%">
+        <Slate 
+          editor={editor} 
+          initialValue={value}
+          value={value}
+          onChange={onChange}
         >
-          <Box
-            w="8.5in"
-            minH="11in"
-            mx="auto"
-            bg="#F0F0F0"
-            boxShadow="0 0 10px rgba(0,0,0,0.2)"
-            borderRadius="sm"
-            p={8}
+          {/* Make toolbar sticky */}
+          <Box 
+            position="sticky"
+            top={0}
+            zIndex={10}
+            bg="#1E2A3B"
+            borderBottom="1px"
+            borderColor="whiteAlpha.200"
+            pb={2}
           >
-            <Editable
-              renderElement={renderElement}
-              renderLeaf={renderLeaf}
-              placeholder="Type something..."
-              spellCheck
-              autoFocus
-              onKeyDown={handleKeyDown}
-              style={{
-                minHeight: '100%',
-                fontFamily: 'Arial',
-                fontSize: '11pt',
-                lineHeight: '1.5',
-                color: '#1A202C',
-              }}
+            <EditorToolbar 
+              saveStatus={saveStatus} 
+              wordCount={wordCount}
+              charCount={charCount}
             />
           </Box>
-        </Box>
-      </Slate>
-    </Flex>
+
+          <Box 
+            flex="1"
+            bg="#1E2A3B"
+            overflowY="auto"
+            pt={4}
+          >
+            <Box
+              w="8.5in"
+              minH="11in"
+              mx="auto"
+              bg="#F0F0F0"
+              boxShadow="0 0 10px rgba(0,0,0,0.2)"
+              borderRadius="sm"
+              p={8}
+            >
+              <Editable
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                placeholder="Type something..."
+                spellCheck
+                autoFocus
+                onKeyDown={handleKeyDown}
+                style={{
+                  minHeight: '100%',
+                  fontFamily: 'Arial',
+                  fontSize: '11pt',
+                  lineHeight: '1.5',
+                  color: '#1A202C',
+                }}
+              />
+            </Box>
+          </Box>
+        </Slate>
+      </Flex>
+    </Box>
   );
 };
 

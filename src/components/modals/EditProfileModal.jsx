@@ -32,6 +32,11 @@ function EditProfileModal({ isOpen, onClose, currentProfile = {}, onUpdate }) {
     location: currentProfile?.location || '',
     photoURL: currentProfile?.photoURL || '',
     coverPhotoURL: currentProfile?.coverPhotoURL || '',
+    socialLinks: {
+      twitter: currentProfile?.socialLinks?.twitter || '',
+      instagram: currentProfile?.socialLinks?.instagram || '',
+      facebook: currentProfile?.socialLinks?.facebook || '',
+    }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -118,6 +123,7 @@ function EditProfileModal({ isOpen, onClose, currentProfile = {}, onUpdate }) {
         location: formData.location,
         photoURL: formData.photoURL,
         coverPhotoURL: formData.coverPhotoURL,
+        socialLinks: formData.socialLinks,
       });
       onUpdate({
         ...formData,
@@ -270,6 +276,57 @@ function EditProfileModal({ isOpen, onClose, currentProfile = {}, onUpdate }) {
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
+                bg="brand.dark.200"
+                borderColor="brand.dark.300"
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel color="brand.text.secondary">Twitter/X Profile URL</FormLabel>
+              <Input
+                value={formData.socialLinks.twitter}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  socialLinks: {
+                    ...prev.socialLinks,
+                    twitter: e.target.value
+                  }
+                }))}
+                placeholder="https://twitter.com/username"
+                bg="brand.dark.200"
+                borderColor="brand.dark.300"
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel color="brand.text.secondary">Instagram Profile URL</FormLabel>
+              <Input
+                value={formData.socialLinks.instagram}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  socialLinks: {
+                    ...prev.socialLinks,
+                    instagram: e.target.value
+                  }
+                }))}
+                placeholder="https://instagram.com/username"
+                bg="brand.dark.200"
+                borderColor="brand.dark.300"
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel color="brand.text.secondary">Facebook Profile URL</FormLabel>
+              <Input
+                value={formData.socialLinks.facebook}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  socialLinks: {
+                    ...prev.socialLinks,
+                    facebook: e.target.value
+                  }
+                }))}
+                placeholder="https://facebook.com/username"
                 bg="brand.dark.200"
                 borderColor="brand.dark.300"
               />
